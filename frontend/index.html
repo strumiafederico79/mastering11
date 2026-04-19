@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Human Master PRO</title>
+  <title>Mastering Suite X</title>
   <link rel="stylesheet" href="/style.css">
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
@@ -11,40 +11,108 @@
   <div class="grain"></div>
   <main class="shell">
     <section class="hero">
-      <div class="badge">RETRO VINTAGE MASTERING</div>
-      <h1>Human Master</h1>
-      <p>Un solo flujo. El motor analiza y decide con criterio técnico, sin presets visibles.</p>
+      <div class="badge">AI MASTERING ASSISTANT • NEXT GEN</div>
+      <h1>Mastering Suite X</h1>
+      <p>Flujo inteligente tipo assistant: analiza, recomienda y masteriza en un solo panel con métricas de referencia estilo profesional.</p>
     </section>
 
-    <section class="grid">
-      <div class="card left">
-        <h2>Entrada</h2>
-        <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
-        <button id="masterBtn">Masterizar</button>
-        <div class="wave-card"><div id="waveform"></div></div>
+    <section class="studio-grid">
+      <article class="panel upload-panel">
+        <h2>Session Builder</h2>
+        <div class="control-group">
+          <label for="file">Track principal</label>
+          <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
+        </div>
+
+        <div class="control-group">
+          <label for="referenceFile">Track de referencia (opcional)</label>
+          <input id="referenceFile" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
+        </div>
+
+        <div class="assistant-grid">
+          <div class="control-group">
+            <label for="genrePreset">Asistente de género</label>
+            <select id="genrePreset">
+              <option value="modern_pop">Modern Pop</option>
+              <option value="latin_urban">Latin Urban</option>
+              <option value="electronic">Electronic</option>
+              <option value="rock">Rock</option>
+              <option value="cinematic">Cinematic</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="targetLufs">Target LUFS</label>
+            <select id="targetLufs">
+              <option value="-14">Streaming Safe (-14)</option>
+              <option value="-11" selected>Competitive (-11)</option>
+              <option value="-9">Loud Club (-9)</option>
+            </select>
+          </div>
+
+          <div class="control-group span-2">
+            <label for="intensity">Intensidad del asistente</label>
+            <input id="intensity" type="range" min="20" max="100" value="72">
+          </div>
+        </div>
+
+        <button id="masterBtn">Iniciar Mastering</button>
+
+        <div class="wave-card">
+          <div class="wave-header">
+            <span>Waveform Preview</span>
+            <strong id="statusText">Esperando archivo...</strong>
+          </div>
+          <div id="waveform"></div>
+        </div>
+
         <div class="progress-wrap">
           <div class="progress-bar"><div id="progressBar"></div></div>
-          <div id="statusText">Esperando archivo...</div>
         </div>
-        <div class="steps">
-          <div class="step" id="stepQueued">Cola</div>
-          <div class="step" id="stepAnalyze">Análisis</div>
-          <div class="step" id="stepProcess">Proceso</div>
-          <div class="step" id="stepExport">Export</div>
-          <div class="step" id="stepDone">Final</div>
-        </div>
-      </div>
 
-      <div class="card right">
-        <h2>Resumen técnico</h2>
-        <div class="kv"><span>Perfil</span><strong id="profile">Human Master</strong></div>
-        <div class="kv"><span>Estado</span><strong id="state">idle</strong></div>
-        <div class="kv"><span>Backend</span><strong id="pluginBackend">native</strong></div>
+        <div class="steps">
+          <div class="step" id="stepQueued">Queue</div>
+          <div class="step" id="stepAnalyze">Analyze</div>
+          <div class="step" id="stepProcess">Process</div>
+          <div class="step" id="stepExport">Export</div>
+          <div class="step" id="stepDone">Done</div>
+        </div>
+      </article>
+
+      <article class="panel insights-panel">
+        <h2>Master Assistant</h2>
+        <div class="meta-grid">
+          <div class="kv"><span>Perfil</span><strong id="profile">Mastering Suite X</strong></div>
+          <div class="kv"><span>Estado</span><strong id="state">idle</strong></div>
+          <div class="kv"><span>Backend</span><strong id="pluginBackend">native</strong></div>
+          <div class="kv"><span>Confidence</span><strong id="confidence">--%</strong></div>
+        </div>
+
+        <div class="meter-grid">
+          <div class="meter-card">
+            <span>Dynamic Range</span>
+            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
+            <small id="meterDynamicsValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Stereo Width</span>
+            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
+            <small id="meterStereoValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Tonal Balance</span>
+            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
+            <small id="meterToneValue">--</small>
+          </div>
+        </div>
 
         <div class="section-title">Issues detectados</div>
         <ul id="issues" class="pill-list"></ul>
 
-        <div class="section-title">Acciones aplicadas</div>
+        <div class="section-title">Plan avanzado (estilo assistant)</div>
+        <ul id="advancedPlan" class="list"></ul>
+
+        <div class="section-title">Cadena aplicada por backend</div>
         <ul id="actions" class="list"></ul>
 
         <div class="section-title">Análisis</div>
@@ -57,7 +125,7 @@
           <a id="downloadWav" href="#">Descargar WAV</a>
           <a id="downloadMp3" href="#">Descargar MP3</a>
         </div>
-      </div>
+      </article>
     </section>
   </main>
   <script src="/app.js"></script>
