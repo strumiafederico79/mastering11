@@ -11,6 +11,42 @@ from app.services.ffmpeg_tools import export_mp3, loudnorm_two_pass
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
 
+def _normalize_af_chain(af_chain: str) -> str:
+    """
+    Normalize known-incompatible filter params that may still appear in old jobs
+    or stale worker deployments.
+    """
+    normalized = af_chain.replace(":level=disabled", "")
+    # Clean accidental duplicate separators.
+    normalized = ",".join([chunk for chunk in normalized.split(",") if chunk])
+    return normalized
+
+def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
+    try:
+        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        return
+    except subprocess.CalledProcessError as ff_err:
+        stderr_text = (ff_err.stderr or "").strip()
+        stdout_text = (ff_err.stdout or "").strip()
+
+    normalized_chain = _normalize_af_chain(af_chain)
+    if normalized_chain != af_chain:
+        retry_cmd = cmd_stage1.copy()
+        retry_cmd[retry_cmd.index("-af") + 1] = normalized_chain
+        try:
+            subprocess.run(retry_cmd, check=True, capture_output=True, text=True)
+            return
+        except subprocess.CalledProcessError as retry_err:
+            stderr_text = ((retry_err.stderr or "").strip() or stderr_text)
+            stdout_text = ((retry_err.stdout or "").strip() or stdout_text)
+            ff_err = retry_err
+
+    debug_tail = (stderr_text or stdout_text)[-3000:]
+    raise RuntimeError(
+        f"Falló ffmpeg en etapa 1 (exit={ff_err.returncode}). "
+        f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
+    ) from ff_err
+
 def update_job(job_id: str, **fields):
     try:
         payload = read_job(job_id)
