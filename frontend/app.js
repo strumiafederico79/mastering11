@@ -11,6 +11,7 @@ const els = {
   analysisBox: document.getElementById('analysisBox'),
   decisionBox: document.getElementById('decisionBox'),
   progressBar: document.getElementById('progressBar'),
+  progressLabel: document.getElementById('progressLabel'),
   statusText: document.getElementById('statusText'),
   downloads: document.getElementById('downloads'),
   downloadWav: document.getElementById('downloadWav'),
@@ -20,6 +21,9 @@ const els = {
   stepProcess: document.getElementById('stepProcess'),
   stepExport: document.getElementById('stepExport'),
   stepDone: document.getElementById('stepDone'),
+  isotopeGrid: document.getElementById('isotopeGrid'),
+  filters: document.querySelectorAll('.filter'),
+  sorts: document.querySelectorAll('.sort'),
 };
 
 function setSteps(progress, status) {
@@ -29,6 +33,50 @@ function setSteps(progress, status) {
   if (progress >= 45) els.stepProcess.classList.add('active');
   if (progress >= 75) els.stepExport.classList.add('active');
   if (status === 'done') els.stepDone.classList.add('active');
+}
+
+function updateProgress(progress) {
+  const normalized = Math.max(2, progress || 0);
+  els.progressBar.style.width = `${normalized}%`;
+  els.progressLabel.textContent = `${Math.round(normalized)}%`;
+}
+
+function applyFilter(filterValue) {
+  const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
+  cards.forEach(card => {
+    const group = card.dataset.group;
+    const shouldShow = filterValue === 'all' || group === filterValue;
+    card.classList.toggle('hidden-card', !shouldShow);
+  });
+}
+
+function applySort(sortType) {
+  const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
+  cards.sort((a, b) => {
+    if (sortType === 'score') {
+      return Number(b.dataset.score) - Number(a.dataset.score);
+    }
+    return 0;
+  });
+  cards.forEach(card => els.isotopeGrid.appendChild(card));
+}
+
+function initToolbar() {
+  els.filters.forEach(button => {
+    button.addEventListener('click', () => {
+      els.filters.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      applyFilter(button.dataset.filter);
+    });
+  });
+
+  els.sorts.forEach(button => {
+    button.addEventListener('click', () => {
+      els.sorts.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      applySort(button.dataset.sort);
+    });
+  });
 }
 
 async function refreshPluginInfo() {
@@ -47,10 +95,10 @@ function renderWave(file) {
   if (wave) wave.destroy();
   wave = WaveSurfer.create({
     container: '#waveform',
-    waveColor: '#7e5e47',
-    progressColor: '#cf7a3e',
-    cursorColor: '#f3c18f',
-    height: 150,
+    waveColor: '#4052ad',
+    progressColor: '#6b7cff',
+    cursorColor: '#21d0ff',
+    height: 138,
     barWidth: 2,
     barGap: 1,
     responsive: true,
@@ -96,7 +144,7 @@ async function uploadFile() {
   els.btn.disabled = true;
   els.statusText.textContent = 'Subiendo...';
   els.downloads.classList.add('hidden');
-  els.progressBar.style.width = '2%';
+  updateProgress(2);
 
   const form = new FormData();
   form.append('file', file);
@@ -126,7 +174,7 @@ async function pollJob(jobId) {
     els.decisionBox.textContent = JSON.stringify(data.decision || {}, null, 2);
     renderIssues(data.issues || []);
     renderActions(data.chain || {}, data.decision || {});
-    els.progressBar.style.width = `${Math.max(2, data.progress || 0)}%`;
+    updateProgress(data.progress || 0);
     els.statusText.textContent = data.message || '';
     setSteps(data.progress || 0, data.status || 'queued');
 
@@ -145,4 +193,5 @@ async function pollJob(jobId) {
 }
 
 els.btn.addEventListener('click', uploadFile);
+initToolbar();
 refreshPluginInfo();

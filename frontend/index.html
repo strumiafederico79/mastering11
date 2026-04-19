@@ -3,29 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Human Master PRO</title>
+  <title>Human Master PRO · Isotope Edition</title>
   <link rel="stylesheet" href="/style.css">
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
 <body>
-  <div class="grain"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
   <main class="shell">
-    <section class="hero">
-      <div class="badge">RETRO VINTAGE MASTERING</div>
-      <h1>Human Master</h1>
-      <p>Un solo flujo. El motor analiza y decide con criterio técnico, sin presets visibles.</p>
+    <section class="hero glass">
+      <div>
+        <p class="kicker">MASTERING INTELIGENTE · ISOTOPE STYLE UI</p>
+        <h1>Human Master <span>Next</span></h1>
+        <p class="subtitle">Revisión visual completa con módulos avanzados: análisis vivo, flujo de mastering por etapas y panel técnico en tiempo real.</p>
+      </div>
+      <div class="hero-meters">
+        <div class="meter-card">
+          <span>Estado del Motor</span>
+          <strong id="state">idle</strong>
+        </div>
+        <div class="meter-card">
+          <span>Backend</span>
+          <strong id="pluginBackend">native</strong>
+        </div>
+        <div class="meter-card">
+          <span>Perfil</span>
+          <strong id="profile">Human Master</strong>
+        </div>
+      </div>
     </section>
 
-    <section class="grid">
-      <div class="card left">
-        <h2>Entrada</h2>
-        <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
-        <button id="masterBtn">Masterizar</button>
+    <section class="workspace">
+      <article class="upload-panel glass">
+        <h2>Input + Preview</h2>
+        <label class="file-drop" for="file">
+          <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
+          <span class="file-title">Arrastra o selecciona audio</span>
+          <small>WAV, MP3, FLAC, OGG, M4A</small>
+        </label>
+        <button id="masterBtn">Masterizar Ahora</button>
         <div class="wave-card"><div id="waveform"></div></div>
+
         <div class="progress-wrap">
+          <div class="progress-meta">
+            <span id="statusText">Esperando archivo...</span>
+            <span id="progressLabel">0%</span>
+          </div>
           <div class="progress-bar"><div id="progressBar"></div></div>
-          <div id="statusText">Esperando archivo...</div>
         </div>
+
         <div class="steps">
           <div class="step" id="stepQueued">Cola</div>
           <div class="step" id="stepAnalyze">Análisis</div>
@@ -33,33 +60,65 @@
           <div class="step" id="stepExport">Export</div>
           <div class="step" id="stepDone">Final</div>
         </div>
-      </div>
-
-      <div class="card right">
-        <h2>Resumen técnico</h2>
-        <div class="kv"><span>Perfil</span><strong id="profile">Human Master</strong></div>
-        <div class="kv"><span>Estado</span><strong id="state">idle</strong></div>
-        <div class="kv"><span>Backend</span><strong id="pluginBackend">native</strong></div>
-
-        <div class="section-title">Issues detectados</div>
-        <ul id="issues" class="pill-list"></ul>
-
-        <div class="section-title">Acciones aplicadas</div>
-        <ul id="actions" class="list"></ul>
-
-        <div class="section-title">Análisis</div>
-        <pre id="analysisBox"></pre>
-
-        <div class="section-title">Decisión</div>
-        <pre id="decisionBox"></pre>
 
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>
           <a id="downloadMp3" href="#">Descargar MP3</a>
         </div>
+      </article>
+
+      <aside class="isotope-grid" id="isotopeGrid">
+        <section class="iso-card" data-group="health" data-score="3">
+          <header>
+            <h3>Issues Detectados</h3>
+            <span class="chip">Health</span>
+          </header>
+          <ul id="issues" class="pill-list"></ul>
+        </section>
+
+        <section class="iso-card" data-group="processing" data-score="2">
+          <header>
+            <h3>Acciones Aplicadas</h3>
+            <span class="chip">Chain</span>
+          </header>
+          <ul id="actions" class="list"></ul>
+        </section>
+
+        <section class="iso-card" data-group="analysis" data-score="1">
+          <header>
+            <h3>Análisis Profundo</h3>
+            <span class="chip">Analyzer</span>
+          </header>
+          <pre id="analysisBox"></pre>
+        </section>
+
+        <section class="iso-card" data-group="decision" data-score="4">
+          <header>
+            <h3>Decisión del Motor</h3>
+            <span class="chip">Decision AI</span>
+          </header>
+          <pre id="decisionBox"></pre>
+        </section>
+      </aside>
+    </section>
+
+    <section class="toolbar glass">
+      <div>
+        <strong>Vista inteligente:</strong>
+        <button class="filter active" data-filter="all">Todo</button>
+        <button class="filter" data-filter="analysis">Análisis</button>
+        <button class="filter" data-filter="processing">Proceso</button>
+        <button class="filter" data-filter="health">Salud</button>
+        <button class="filter" data-filter="decision">Decisión</button>
+      </div>
+      <div>
+        <strong>Orden:</strong>
+        <button class="sort active" data-sort="default">Default</button>
+        <button class="sort" data-sort="score">Prioridad</button>
       </div>
     </section>
   </main>
+
   <script src="/app.js"></script>
 </body>
 </html>
