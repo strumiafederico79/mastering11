@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mastering Suite X</title>
+  <title>PGR Mastering</title>
   <link rel="stylesheet" href="/style.css">
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
@@ -13,9 +13,9 @@
 
   <main class="shell">
     <section class="hero">
-      <div class="badge">HUMAN ADAPTIVE MASTERING • PREMIUM ENGINE</div>
-      <h1>Mastering Suite X</h1>
-      <p>Motor de criterio humano: escucha la mezcla, detecta voz/coros/instrumental y decide procesamiento dinámico sin depender de presets rígidos.</p>
+      <div class="badge">PGR MASTERING • IMMERSIVE AUDIO LAB</div>
+      <h1>PGR Mastering</h1>
+      <p>Plataforma de mastering premium con separación IA real de stems, decisiones musicales asistidas y entregas listas para release.</p>
     </section>
 
     <section class="studio-grid">
@@ -62,6 +62,23 @@
             </select>
           </div>
 
+          <div class="control-group">
+            <label for="stemMode">Separación rápida</label>
+            <select id="stemMode">
+              <option value="full_mix" selected>Mix completo</option>
+              <option value="vocals_only">Priorizar voz</option>
+              <option value="instrumental_only">Quitar voz (instrumental)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="deliveryTarget">Entrega final</label>
+            <select id="deliveryTarget">
+              <option value="streaming" selected>Streaming</option>
+              <option value="cd_master">CD / Loud Master</option>
+            </select>
+          </div>
+
           <div class="control-group span-2">
             <label for="intensity">Intensidad del asistente</label>
             <input id="intensity" type="range" min="20" max="100" value="72">
@@ -76,6 +93,24 @@
           <label><input id="modExciter" type="checkbox" checked> Harmonic Exciter</label>
           <label><input id="modTransient" type="checkbox" checked> Transient Shaper</label>
           <label><input id="modLimiter" type="checkbox" checked> True Peak Limiter</label>
+        </div>
+
+        <div class="section-title">Funciones PRO</div>
+        <div class="module-grid">
+          <label><input id="fxAbMatch" type="checkbox" checked> A/B Match inteligente</label>
+          <label><input id="fxSectionTp" type="checkbox" checked> Guard clipping por secciones</label>
+          <label><input id="fxAiStem" type="checkbox" checked> Stem mastering inteligente</label>
+          <label><input id="fxHumanNotes" type="checkbox" checked> Human notes avanzado</label>
+          <label><input id="fxDeesser" type="checkbox" checked> De-esser dinámico</label>
+          <label><input id="fxPhaseFix" type="checkbox" checked> Fix fase/mono</label>
+          <label><input id="fxResonance" type="checkbox" checked> Detector de resonancias</label>
+          <label><input id="fxDither" type="checkbox" checked> Dither + noise shaping</label>
+          <label><input id="fxVocalPriority" type="checkbox" checked> Vocal Priority</label>
+          <label><input id="fxSmartLimiter" type="checkbox" checked> Limiter lookahead adaptativo</label>
+          <label><input id="fxLoudnessRadar" type="checkbox" checked> Loudness Radar</label>
+          <label><input id="fxBassNoteControl" type="checkbox" checked> Bajos por nota</label>
+          <label><input id="fxMsSculptor" type="checkbox" checked> Smart Mid/Side Sculptor</label>
+          <label><input id="fxQaPreflight" type="checkbox" checked> QA final pre-flight</label>
         </div>
 
         <button id="masterBtn">Iniciar Mastering</button>
@@ -108,7 +143,7 @@
       <article class="panel insights-panel">
         <h2>Master Assistant</h2>
         <div class="meta-grid">
-          <div class="kv"><span>Perfil</span><strong id="profile">Mastering Suite X</strong></div>
+          <div class="kv"><span>Perfil</span><strong id="profile">PGR Mastering</strong></div>
           <div class="kv"><span>Estado</span><strong id="state">idle</strong></div>
           <div class="kv"><span>Backend</span><strong id="pluginBackend">native</strong></div>
           <div class="kv"><span>Confidence</span><strong id="confidence">--%</strong></div>
@@ -159,6 +194,9 @@
         <div class="section-title">Mapa de secciones (único)</div>
         <pre id="sectionMap">Sin datos todavía.</pre>
 
+        <div class="section-title">Loudness Radar</div>
+        <pre id="loudnessRadar">Sin datos de radar.</pre>
+
         <div class="section-title">Nota humana de mastering (única)</div>
         <pre id="humanNote">Esperando análisis para redactar nota automática...</pre>
 
@@ -186,6 +224,13 @@
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>
           <a id="downloadMp3" href="#">Descargar MP3</a>
+          <a id="downloadAcapellaWav" href="#">Acapella WAV</a>
+          <a id="downloadAcapellaMp3" href="#">Acapella MP3</a>
+          <a id="downloadInstrumentalWav" href="#">Instrumental WAV</a>
+          <a id="downloadInstrumentalMp3" href="#">Instrumental MP3</a>
+          <a id="downloadDrumsMp3" href="#">Drums MP3 (IA)</a>
+          <a id="downloadBassMp3" href="#">Bass MP3 (IA)</a>
+          <a id="downloadOtherMp3" href="#">Music MP3 (IA)</a>
         </div>
       </article>
     </section>
