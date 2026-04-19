@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Human Master PRO · Isotope Edition</title>
+  <title>Mastering Suite X</title>
   <link rel="stylesheet" href="/style.css">
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
@@ -12,38 +12,81 @@
   <div class="bg-orb orb-2"></div>
 
   <main class="shell">
-    <section class="hero glass">
-      <div>
-        <p class="kicker">MASTERING INTELIGENTE · ISOTOPE STYLE UI</p>
-        <h1>Human Master <span>Next</span></h1>
-        <p class="subtitle">Revisión visual completa con módulos avanzados: análisis vivo, flujo de mastering por etapas y panel técnico en tiempo real.</p>
-      </div>
-      <div class="hero-meters">
-        <div class="meter-card">
-          <span>Estado del Motor</span>
-          <strong id="state">idle</strong>
-        </div>
-        <div class="meter-card">
-          <span>Backend</span>
-          <strong id="pluginBackend">native</strong>
-        </div>
-        <div class="meter-card">
-          <span>Perfil</span>
-          <strong id="profile">Human Master</strong>
-        </div>
-      </div>
+    <section class="hero">
+      <div class="badge">HUMAN ADAPTIVE MASTERING • PREMIUM ENGINE</div>
+      <h1>Mastering Suite X</h1>
+      <p>Motor de criterio humano: escucha la mezcla, detecta voz/coros/instrumental y decide procesamiento dinámico sin depender de presets rígidos.</p>
     </section>
 
-    <section class="workspace">
-      <article class="upload-panel glass">
-        <h2>Input + Preview</h2>
-        <label class="file-drop" for="file">
+    <section class="studio-grid">
+      <article class="panel upload-panel">
+        <h2>Session Builder</h2>
+        <div class="control-group">
+          <label for="file">Track principal</label>
           <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
-          <span class="file-title">Arrastra o selecciona audio</span>
-          <small>WAV, MP3, FLAC, OGG, M4A</small>
-        </label>
-        <button id="masterBtn">Masterizar Ahora</button>
-        <div class="wave-card"><div id="waveform"></div></div>
+        </div>
+
+        <div class="control-group">
+          <label for="referenceFile">Track de referencia (opcional)</label>
+          <input id="referenceFile" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
+        </div>
+
+        <div class="assistant-grid">
+          <div class="control-group">
+            <label for="assistantMode">Sesgo de decisión humana</label>
+            <select id="assistantMode">
+              <option value="human_master" selected>Adaptive Neutral</option>
+              <option value="assistant_punch">Impact / Punch</option>
+              <option value="assistant_warm">Warm / Musical</option>
+              <option value="assistant_open">Open / Airy</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="genrePreset">Asistente de género</label>
+            <select id="genrePreset">
+              <option value="modern_pop">Modern Pop</option>
+              <option value="latin_urban">Latin Urban</option>
+              <option value="electronic">Electronic</option>
+              <option value="rock">Rock</option>
+              <option value="cinematic">Cinematic</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="targetLufs">Target LUFS</label>
+            <select id="targetLufs">
+              <option value="-14">Streaming Safe (-14)</option>
+              <option value="-11" selected>Competitive (-11)</option>
+              <option value="-9">Loud Club (-9)</option>
+            </select>
+          </div>
+
+          <div class="control-group span-2">
+            <label for="intensity">Intensidad del asistente</label>
+            <input id="intensity" type="range" min="20" max="100" value="72">
+          </div>
+        </div>
+
+        <div class="section-title">Plugins / módulos avanzados</div>
+        <div class="module-grid">
+          <label><input id="modDynamicEq" type="checkbox" checked> Dynamic EQ</label>
+          <label><input id="modMultibandGlue" type="checkbox" checked> Multiband Glue</label>
+          <label><input id="modStereoImager" type="checkbox" checked> Stereo Imager</label>
+          <label><input id="modExciter" type="checkbox" checked> Harmonic Exciter</label>
+          <label><input id="modTransient" type="checkbox" checked> Transient Shaper</label>
+          <label><input id="modLimiter" type="checkbox" checked> True Peak Limiter</label>
+        </div>
+
+        <button id="masterBtn">Iniciar Mastering</button>
+
+        <div class="wave-card">
+          <div class="wave-header">
+            <span>Waveform Preview</span>
+            <strong id="statusText">Esperando archivo...</strong>
+          </div>
+          <div id="waveform"></div>
+        </div>
 
         <div class="progress-wrap">
           <div class="progress-meta">
@@ -54,18 +97,40 @@
         </div>
 
         <div class="steps">
-          <div class="step" id="stepQueued">Cola</div>
-          <div class="step" id="stepAnalyze">Análisis</div>
-          <div class="step" id="stepProcess">Proceso</div>
+          <div class="step" id="stepQueued">Queue</div>
+          <div class="step" id="stepAnalyze">Analyze</div>
+          <div class="step" id="stepProcess">Process</div>
           <div class="step" id="stepExport">Export</div>
-          <div class="step" id="stepDone">Final</div>
-        </div>
-
-        <div class="downloads hidden" id="downloads">
-          <a id="downloadWav" href="#">Descargar WAV</a>
-          <a id="downloadMp3" href="#">Descargar MP3</a>
+          <div class="step" id="stepDone">Done</div>
         </div>
       </article>
+
+      <article class="panel insights-panel">
+        <h2>Master Assistant</h2>
+        <div class="meta-grid">
+          <div class="kv"><span>Perfil</span><strong id="profile">Mastering Suite X</strong></div>
+          <div class="kv"><span>Estado</span><strong id="state">idle</strong></div>
+          <div class="kv"><span>Backend</span><strong id="pluginBackend">native</strong></div>
+          <div class="kv"><span>Confidence</span><strong id="confidence">--%</strong></div>
+        </div>
+
+        <div class="meter-grid">
+          <div class="meter-card">
+            <span>Dynamic Range</span>
+            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
+            <small id="meterDynamicsValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Stereo Width</span>
+            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
+            <small id="meterStereoValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Tonal Balance</span>
+            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
+            <small id="meterToneValue">--</small>
+          </div>
+        </div>
 
       <aside class="isotope-grid" id="isotopeGrid">
         <section class="iso-card" data-group="health" data-score="3">
@@ -76,13 +141,14 @@
           <ul id="issues" class="pill-list"></ul>
         </section>
 
-        <section class="iso-card" data-group="processing" data-score="2">
-          <header>
-            <h3>Acciones Aplicadas</h3>
-            <span class="chip">Chain</span>
-          </header>
-          <ul id="actions" class="list"></ul>
-        </section>
+        <div class="section-title">Plan avanzado (estilo assistant)</div>
+        <ul id="advancedPlan" class="list"></ul>
+
+        <div class="section-title">Contexto musical detectado</div>
+        <ul id="arrangementTags" class="pill-list"></ul>
+
+        <div class="section-title">Cadena aplicada por backend</div>
+        <ul id="actions" class="list"></ul>
 
         <section class="iso-card" data-group="analysis" data-score="1">
           <header>
@@ -102,20 +168,11 @@
       </aside>
     </section>
 
-    <section class="toolbar glass">
-      <div>
-        <strong>Vista inteligente:</strong>
-        <button class="filter active" data-filter="all">Todo</button>
-        <button class="filter" data-filter="analysis">Análisis</button>
-        <button class="filter" data-filter="processing">Proceso</button>
-        <button class="filter" data-filter="health">Salud</button>
-        <button class="filter" data-filter="decision">Decisión</button>
-      </div>
-      <div>
-        <strong>Orden:</strong>
-        <button class="sort active" data-sort="default">Default</button>
-        <button class="sort" data-sort="score">Prioridad</button>
-      </div>
+        <div class="downloads hidden" id="downloads">
+          <a id="downloadWav" href="#">Descargar WAV</a>
+          <a id="downloadMp3" href="#">Descargar MP3</a>
+        </div>
+      </article>
     </section>
   </main>
 

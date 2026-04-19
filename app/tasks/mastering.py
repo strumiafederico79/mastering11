@@ -20,7 +20,7 @@ def update_job(job_id: str, **fields):
     write_job(job_id, payload)
 
 @celery_app.task(name="app.tasks.run_mastering")
-def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
+def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", options: dict | None = None):
     input_path = UPLOAD_DIR / input_filename
     stage1_wav = OUTPUT_DIR / f"{job_id}_stage1.wav"
     final_wav = OUTPUT_DIR / f"{job_id}.wav"
@@ -39,7 +39,7 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
         analysis = analyze_audio(y, sr)
 
         update_job(job_id, progress=30, message="Tomando decisiones...", analysis=analysis, issues=analysis.get("issues", []))
-        decision = decide_mastering(analysis, mode=mode)
+        decision = decide_mastering(analysis, mode=mode, options=options)
 
         update_job(job_id, progress=45, message="Procesando cadena de mastering...", decision=decision)
         af_chain, actions = build_ffmpeg_filter_chain(decision)
@@ -71,7 +71,7 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
             status="done",
             progress=100,
             message="Mastering terminado.",
-            profile="Human Master",
+            profile=decision.get("preset_name", "Human Master"),
             outputs={"wav_path": str(final_wav), "mp3_path": str(final_mp3)},
             error=None,
         )

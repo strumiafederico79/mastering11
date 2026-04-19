@@ -1,4 +1,5 @@
 import uuid
+import json
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
@@ -29,7 +30,11 @@ def learning():
     return get_learning_stats()
 
 @app.post("/api/jobs", response_model=JobCreateResponse)
-async def create_job(file: UploadFile = File(...), mode: str = Form("human_master")):
+async def create_job(
+    file: UploadFile = File(...),
+    mode: str = Form("human_master"),
+    options_json: str = Form("{}"),
+):
     if not file or not file.filename:
         raise HTTPException(status_code=400, detail="Archivo inválido.")
     raw = await file.read()
@@ -44,7 +49,12 @@ async def create_job(file: UploadFile = File(...), mode: str = Form("human_maste
     input_path.write_bytes(raw)
 
     job_id = uuid.uuid4().hex
-    task = celery_app.send_task("app.tasks.run_mastering", args=[job_id, input_filename, mode])
+    try:
+        options = json.loads(options_json or "{}")
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="options_json inválido.") from exc
+
+    task = celery_app.send_task("app.tasks.run_mastering", args=[job_id, input_filename, mode, options])
 
     write_job(job_id, {
         "job_id": job_id,
@@ -53,6 +63,7 @@ async def create_job(file: UploadFile = File(...), mode: str = Form("human_maste
         "progress": 0,
         "message": "En cola...",
         "mode": mode,
+        "options": options,
         "profile": None,
         "analysis": {},
         "decision": {},
