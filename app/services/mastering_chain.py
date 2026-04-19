@@ -3,6 +3,10 @@ from app.core.config import settings
 def _db(val: float) -> str:
     return f"{val:.2f}"
 
+def build_safe_filter_chain() -> str:
+    # Cadena de máxima compatibilidad para builds de ffmpeg limitadas.
+    return "highpass=f=25,acompressor=threshold=0.10:ratio=2.0:attack=20:release=180,alimiter=limit=0.98"
+
 def build_ffmpeg_filter_chain(decision: dict):
     filters = []
     actions = []
