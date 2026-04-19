@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.services.audio_io import load_audio_for_analysis
 from app.services.analyzer import analyze_audio
 from app.services.decision_engine import decide_mastering
-from app.services.mastering_chain import build_ffmpeg_filter_chain
+from app.services.mastering_chain import build_ffmpeg_filter_chain, build_safe_filter_chain
 from app.services.ffmpeg_tools import export_mp3, loudnorm_two_pass
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
@@ -88,7 +88,28 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
             str(stage1_wav),
         ]
         print(f"[{job_id}] STAGE1 FFMPEG", flush=True)
-        _run_stage1_ffmpeg(cmd_stage1, af_chain)
+        try:
+            subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as ff_err:
+            fallback_chain = build_safe_filter_chain()
+            update_job(
+                job_id,
+                progress=55,
+                message="Compatibilidad ffmpeg: reintentando con cadena segura...",
+                chain={
+                    "stages": [a["stage"] for a in actions] + ["safe_fallback"],
+                    "actions": actions + [{"stage": "safe_fallback", "reason": "ffmpeg_filter_compatibility"}],
+                    "ffmpeg_error": (ff_err.stderr or ff_err.stdout or str(ff_err))[:1400],
+                },
+            )
+            fallback_cmd = [
+                "ffmpeg", "-y", "-i", str(input_path),
+                "-af", fallback_chain,
+                "-ar", str(settings.target_sr),
+                "-ac", "2",
+                str(stage1_wav),
+            ]
+            subprocess.run(fallback_cmd, check=True, capture_output=True, text=True)
 
         update_job(job_id, progress=75, message="Normalizando loudness...", chain={"stages": [a["stage"] for a in actions], "actions": actions})
         metrics = loudnorm_two_pass(str(stage1_wav), str(final_wav), decision["target_lufs"], decision["limiter_ceiling_dbtp"], 11.0)
