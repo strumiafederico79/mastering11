@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.services.audio_io import load_audio_for_analysis
 from app.services.analyzer import analyze_audio
 from app.services.decision_engine import decide_mastering
-from app.services.mastering_chain import build_ffmpeg_filter_chain
+from app.services.mastering_chain import build_ffmpeg_filter_chain, build_safe_filter_chain
 from app.services.ffmpeg_tools import export_mp3, loudnorm_two_pass
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
@@ -20,7 +20,7 @@ def update_job(job_id: str, **fields):
     write_job(job_id, payload)
 
 @celery_app.task(name="app.tasks.run_mastering")
-def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
+def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", options: dict | None = None):
     input_path = UPLOAD_DIR / input_filename
     stage1_wav = OUTPUT_DIR / f"{job_id}_stage1.wav"
     final_wav = OUTPUT_DIR / f"{job_id}.wav"
@@ -39,7 +39,7 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
         analysis = analyze_audio(y, sr)
 
         update_job(job_id, progress=30, message="Tomando decisiones...", analysis=analysis, issues=analysis.get("issues", []))
-        decision = decide_mastering(analysis, mode=mode)
+        decision = decide_mastering(analysis, mode=mode, options=options)
 
         update_job(job_id, progress=45, message="Procesando cadena de mastering...", decision=decision)
         af_chain, actions = build_ffmpeg_filter_chain(decision)
@@ -52,7 +52,28 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
             str(stage1_wav),
         ]
         print(f"[{job_id}] STAGE1 FFMPEG", flush=True)
-        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        try:
+            subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as ff_err:
+            fallback_chain = build_safe_filter_chain()
+            update_job(
+                job_id,
+                progress=55,
+                message="Compatibilidad ffmpeg: reintentando con cadena segura...",
+                chain={
+                    "stages": [a["stage"] for a in actions] + ["safe_fallback"],
+                    "actions": actions + [{"stage": "safe_fallback", "reason": "ffmpeg_filter_compatibility"}],
+                    "ffmpeg_error": (ff_err.stderr or ff_err.stdout or str(ff_err))[:1400],
+                },
+            )
+            fallback_cmd = [
+                "ffmpeg", "-y", "-i", str(input_path),
+                "-af", fallback_chain,
+                "-ar", str(settings.target_sr),
+                "-ac", "2",
+                str(stage1_wav),
+            ]
+            subprocess.run(fallback_cmd, check=True, capture_output=True, text=True)
 
         update_job(job_id, progress=75, message="Normalizando loudness...", chain={"stages": [a["stage"] for a in actions], "actions": actions})
         metrics = loudnorm_two_pass(str(stage1_wav), str(final_wav), decision["target_lufs"], decision["limiter_ceiling_dbtp"], 11.0)
@@ -71,7 +92,7 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master"):
             status="done",
             progress=100,
             message="Mastering terminado.",
-            profile="Human Master",
+            profile=decision.get("preset_name", "Human Master"),
             outputs={"wav_path": str(final_wav), "mp3_path": str(final_mp3)},
             error=None,
         )
