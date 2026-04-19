@@ -76,6 +76,7 @@ def analyze_audio(y, sr):
     n_sections = 6
     section_len = max(1, len(y) // n_sections)
     section_rms_db = []
+    section_peak_db = []
     for i in range(n_sections):
         start = i * section_len
         end = len(y) if i == (n_sections - 1) else (i + 1) * section_len
@@ -85,9 +86,24 @@ def analyze_audio(y, sr):
             continue
         chunk_rms = float(np.sqrt(np.mean(np.square(chunk))) + 1e-8)
         section_rms_db.append(float(20 * np.log10(chunk_rms + 1e-8)))
+        chunk_peak = float(np.max(np.abs(chunk)) + 1e-8)
+        section_peak_db.append(float(20 * np.log10(chunk_peak)))
 
     macro_dynamics = float(np.max(section_rms_db) - np.min(section_rms_db))
     hook_lift_db = float(np.mean(section_rms_db[-2:]) - np.mean(section_rms_db[:2]))
+    clipping_sections = [idx for idx, p in enumerate(section_peak_db) if p > -0.2]
+    true_peak_est_db = float(20 * np.log10(peak + 1e-8))
+    sibilance_band = band(5000, 10000)
+    sibilance_index = float(sibilance_band / max(mid, 1e-6))
+    harshness_index = float(high / max(mid, 1e-6))
+    resonance_idx = (freqs >= 1000) & (freqs <= 9000)
+    resonance_hz = 3500
+    if np.any(resonance_idx):
+        idx = np.where(resonance_idx)[0]
+        sub_spec = np.mean(spec[idx], axis=1)
+        peak_i = int(np.argmax(sub_spec))
+        resonance_hz = int(freqs[idx][peak_i])
+    ab_match_gain_db = float(-18.0 - (20 * np.log10(rms + 1e-8)))
     if hook_lift_db > 1.3:
         arrangement_tags.append("hook_con_lift")
     if macro_dynamics > 5.0:
@@ -115,6 +131,13 @@ def analyze_audio(y, sr):
         "section_rms_db": section_rms_db,
         "macro_dynamics_db": macro_dynamics,
         "hook_lift_db": hook_lift_db,
+        "section_peak_db": section_peak_db,
+        "clipping_sections": clipping_sections,
+        "true_peak_est_db": true_peak_est_db,
+        "sibilance_index": sibilance_index,
+        "harshness_index": harshness_index,
+        "resonance_hz": resonance_hz,
+        "ab_match_gain_db": ab_match_gain_db,
         "phase_corr": 1.0,
         "stereo_width": 0.0,
         "issues": issues,

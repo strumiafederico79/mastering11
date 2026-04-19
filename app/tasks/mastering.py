@@ -7,7 +7,7 @@ from app.services.audio_io import load_audio_for_analysis
 from app.services.analyzer import analyze_audio
 from app.services.decision_engine import decide_mastering
 from app.services.mastering_chain import build_ffmpeg_filter_chain
-from app.services.ffmpeg_tools import export_mp3, export_stem, loudnorm_two_pass
+from app.services.ffmpeg_tools import apply_dither, export_mp3, export_stem, loudnorm_two_pass
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
 
@@ -66,6 +66,7 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
     input_path = UPLOAD_DIR / input_filename
     stage1_wav = OUTPUT_DIR / f"{job_id}_stage1.wav"
     final_wav = OUTPUT_DIR / f"{job_id}.wav"
+    final_wav_dither = OUTPUT_DIR / f"{job_id}_dither.wav"
     final_mp3 = OUTPUT_DIR / f"{job_id}.mp3"
     acapella_wav = OUTPUT_DIR / f"{job_id}_acapella.wav"
     acapella_mp3 = OUTPUT_DIR / f"{job_id}_acapella.mp3"
@@ -102,6 +103,11 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
 
         update_job(job_id, progress=75, message="Normalizando loudness...", chain={"stages": [a["stage"] for a in actions], "actions": actions})
         metrics = loudnorm_two_pass(str(stage1_wav), str(final_wav), decision["target_lufs"], decision["limiter_ceiling_dbtp"], 11.0)
+
+        dither_profile = decision.get("dither_profile", "off")
+        if dither_profile != "off":
+            apply_dither(str(final_wav), str(final_wav_dither), profile=str(dither_profile))
+            final_wav = final_wav_dither
 
         update_job(job_id, progress=90, message="Exportando MP3...", metrics=metrics)
         export_mp3(str(final_wav), str(final_mp3))

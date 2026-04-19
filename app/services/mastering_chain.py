@@ -55,6 +55,18 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append(f"equalizer=f={hz}:t=q:w=1.0:g=-{_db(db)}")
         actions.append({"stage": "deharsh", "db": -db, "hz": hz})
 
+    deesser_db = float(decision.get("deesser_db", 0.0))
+    if deesser_db > 0:
+        deesser_hz = int(decision.get("deesser_hz", 6800))
+        filters.append(f"equalizer=f={deesser_hz}:t=q:w=1.2:g=-{_db(deesser_db)}")
+        actions.append({"stage": "dynamic_deesser", "db": -deesser_db, "hz": deesser_hz})
+
+    resonance_cut_db = float(decision.get("resonance_cut_db", 0.0))
+    if resonance_cut_db > 0:
+        resonance_hz = int(decision.get("resonance_hz", 3500))
+        filters.append(f"equalizer=f={resonance_hz}:t=q:w=2.2:g=-{_db(resonance_cut_db)}")
+        actions.append({"stage": "resonance_hunter", "db": -resonance_cut_db, "hz": resonance_hz})
+
     drive = decision.get("multiband_drive", "medium")
     if drive == "high":
         filters.append("acompressor=threshold=0.08:ratio=2.5:attack=15:release=180:makeup=1")
@@ -99,6 +111,10 @@ def build_ffmpeg_filter_chain(decision: dict):
     if instrument_glue_db > 0:
         filters.append(f"volume={_db(instrument_glue_db)}dB")
         actions.append({"stage": "instrument_glue", "db": instrument_glue_db})
+
+    if decision.get("mono_low_end_fix"):
+        filters.append("highpass=f=28")
+        actions.append({"stage": "mono_low_end_fix", "f": 28})
 
     if decision.get("cd_low_weight_stage"):
         filters.append("equalizer=f=95:t=q:w=0.9:g=0.80")

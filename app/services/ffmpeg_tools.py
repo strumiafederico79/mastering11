@@ -47,3 +47,13 @@ def loudnorm_two_pass(in_wav: str, out_wav: str, target_lufs: float, true_peak: 
     )
     subprocess.run(["ffmpeg", "-y", "-i", in_wav, "-af", af2, out_wav], capture_output=True, text=True, check=True)
     return metrics
+
+def apply_dither(in_wav: str, out_wav: str, profile: str = "triangular_hp") -> None:
+    if profile == "triangular_hp":
+        af = "aresample=44100:dither_method=triangular_hp"
+    else:
+        af = "aresample=44100:dither_method=triangular"
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", in_wav, "-af", af, "-c:a", "pcm_s16le", out_wav],
+        check=True, capture_output=True, text=True,
+    )
