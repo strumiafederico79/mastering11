@@ -8,7 +8,9 @@
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
 <body>
-  <div class="grain"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
   <main class="shell">
     <section class="hero">
       <div class="badge">HUMAN ADAPTIVE MASTERING • PREMIUM ENGINE</div>
@@ -87,6 +89,10 @@
         </div>
 
         <div class="progress-wrap">
+          <div class="progress-meta">
+            <span id="statusText">Esperando archivo...</span>
+            <span id="progressLabel">0%</span>
+          </div>
           <div class="progress-bar"><div id="progressBar"></div></div>
         </div>
 
@@ -126,8 +132,41 @@
           </div>
         </div>
 
-        <div class="section-title">Issues detectados</div>
-        <ul id="issues" class="pill-list"></ul>
+        <div class="meter-grid">
+          <div class="meter-card">
+            <span>Dynamic Range</span>
+            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
+            <small id="meterDynamicsValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Stereo Width</span>
+            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
+            <small id="meterStereoValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Tonal Balance</span>
+            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
+            <small id="meterToneValue">--</small>
+          </div>
+        </div>
+
+        <div class="meter-grid">
+          <div class="meter-card">
+            <span>Dynamic Range</span>
+            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
+            <small id="meterDynamicsValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Stereo Width</span>
+            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
+            <small id="meterStereoValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Tonal Balance</span>
+            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
+            <small id="meterToneValue">--</small>
+          </div>
+        </div>
 
         <div class="section-title">Plan avanzado (estilo assistant)</div>
         <ul id="advancedPlan" class="list"></ul>
@@ -144,11 +183,23 @@
         <div class="section-title">Cadena aplicada por backend</div>
         <ul id="actions" class="list"></ul>
 
-        <div class="section-title">Análisis</div>
-        <pre id="analysisBox"></pre>
+        <section class="iso-card" data-group="analysis" data-score="1">
+          <header>
+            <h3>Análisis Profundo</h3>
+            <span class="chip">Analyzer</span>
+          </header>
+          <pre id="analysisBox"></pre>
+        </section>
 
-        <div class="section-title">Decisión</div>
-        <pre id="decisionBox"></pre>
+        <section class="iso-card" data-group="decision" data-score="4">
+          <header>
+            <h3>Decisión del Motor</h3>
+            <span class="chip">Decision AI</span>
+          </header>
+          <pre id="decisionBox"></pre>
+        </section>
+      </aside>
+    </section>
 
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>
@@ -157,6 +208,7 @@
       </article>
     </section>
   </main>
+
   <script src="/app.js"></script>
 </body>
 </html>
