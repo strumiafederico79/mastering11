@@ -8,6 +8,14 @@ def build_ffmpeg_filter_chain(decision: dict):
     actions = []
     modules = decision.get("advanced_modules", {})
     human_pass_strategy = decision.get("human_pass_strategy", "single_pass_balanced")
+    stem_mode = decision.get("stem_mode", "full_mix")
+
+    if stem_mode == "vocals_only":
+        filters.append("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1")
+        actions.append({"stage": "stem_vocals", "mode": "center_extract"})
+    elif stem_mode == "instrumental_only":
+        filters.append("pan=stereo|c0=c0-c1|c1=c1-c0")
+        actions.append({"stage": "stem_instrumental", "mode": "center_cancel"})
 
     if decision.get("tighten_low_end"):
         filters.append("highpass=f=25")
@@ -43,6 +51,18 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append(f"equalizer=f={hz}:t=q:w=1.0:g=-{_db(db)}")
         actions.append({"stage": "deharsh", "db": -db, "hz": hz})
 
+    deesser_db = float(decision.get("deesser_db", 0.0))
+    if deesser_db > 0:
+        deesser_hz = int(decision.get("deesser_hz", 6800))
+        filters.append(f"equalizer=f={deesser_hz}:t=q:w=1.2:g=-{_db(deesser_db)}")
+        actions.append({"stage": "dynamic_deesser", "db": -deesser_db, "hz": deesser_hz})
+
+    resonance_cut_db = float(decision.get("resonance_cut_db", 0.0))
+    if resonance_cut_db > 0:
+        resonance_hz = int(decision.get("resonance_hz", 3500))
+        filters.append(f"equalizer=f={resonance_hz}:t=q:w=2.2:g=-{_db(resonance_cut_db)}")
+        actions.append({"stage": "resonance_hunter", "db": -resonance_cut_db, "hz": resonance_hz})
+
     drive = decision.get("multiband_drive", "medium")
     if drive == "high":
         filters.append("acompressor=threshold=0.08:ratio=2.5:attack=15:release=180:makeup=1")
@@ -55,7 +75,8 @@ def build_ffmpeg_filter_chain(decision: dict):
         actions.append({"stage": "compressor", "drive": "medium"})
 
     if decision.get("boost_transients") and modules.get("transient_shaper", True):
-        filters.append("alimiter=limit=0.95:level=disabled")
+        # Keep limiter syntax broadly compatible with ffmpeg builds.
+        filters.append("alimiter=limit=0.95")
         actions.append({"stage": "transient_support", "focus": decision.get("transient_focus", "mid_high")})
 
     if decision.get("use_exciter") and modules.get("harmonic_exciter", True):
@@ -65,6 +86,10 @@ def build_ffmpeg_filter_chain(decision: dict):
     if modules.get("multiband_glue", True):
         filters.append("acompressor=threshold=0.11:ratio=1.5:attack=6:release=110:makeup=0.3")
         actions.append({"stage": "multiband_glue", "profile": "transparent"})
+
+    if decision.get("human_glue_stage", True):
+        filters.append("acompressor=threshold=0.09:ratio=1.3:attack=35:release=260:makeup=0.2")
+        actions.append({"stage": "human_glue", "profile": "bus_like"})
 
     vocal_presence_boost_db = float(decision.get("vocal_presence_boost_db", 0.0))
     if vocal_presence_boost_db > 0:
@@ -83,6 +108,24 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append(f"volume={_db(instrument_glue_db)}dB")
         actions.append({"stage": "instrument_glue", "db": instrument_glue_db})
 
+    bass_note_control_db = float(decision.get("bass_note_control_db", 0.0))
+    if abs(bass_note_control_db) > 0.05:
+        bass_hz = int(decision.get("bass_note_hz", 80))
+        filters.append(f"equalizer=f={bass_hz}:t=q:w=1.4:g={_db(bass_note_control_db)}")
+        actions.append({"stage": "bass_note_control", "db": bass_note_control_db, "hz": bass_hz})
+
+    if decision.get("mono_low_end_fix"):
+        filters.append("highpass=f=28")
+        actions.append({"stage": "mono_low_end_fix", "f": 28})
+
+    if decision.get("cd_low_weight_stage"):
+        filters.append("equalizer=f=95:t=q:w=0.9:g=0.80")
+        actions.append({"stage": "cd_low_weight", "db": 0.8, "hz": 95})
+
+    if decision.get("cd_presence_stage"):
+        filters.append("equalizer=f=3300:t=q:w=0.8:g=0.60")
+        actions.append({"stage": "cd_presence", "db": 0.6, "hz": 3300})
+
     if modules.get("stereo_imager", True) and decision.get("widen_stereo", True):
         actions.append({
             "stage": "stereo_imager",
@@ -91,8 +134,21 @@ def build_ffmpeg_filter_chain(decision: dict):
         })
 
     if modules.get("true_peak_limiter", True):
-        filters.append("alimiter=limit=0.98:level=disabled")
-        actions.append({"stage": "true_peak_limiter", "ceiling": decision.get("limiter_ceiling_dbtp", -1.0)})
+        # Keep limiter syntax broadly compatible with ffmpeg builds.
+        limit = float(decision.get("limiter_ceiling_dbtp", -1.0))
+        peak_linear = max(0.85, min(0.99, 10 ** (limit / 20.0)))
+        if decision.get("smart_limiter"):
+            lookahead = float(decision.get("limiter_lookahead_ms", 4.0))
+            release = float(decision.get("limiter_release_ms", 60.0))
+            filters.append(f"alimiter=limit={peak_linear:.3f}:attack={lookahead}:release={release}")
+            actions.append({"stage": "smart_limiter", "lookahead_ms": lookahead, "release_ms": release, "ceiling_dbtp": limit})
+        else:
+            filters.append(f"alimiter=limit={peak_linear:.3f}")
+            actions.append({"stage": "true_peak_limiter", "ceiling": limit})
+
+    if decision.get("smart_ms_sculptor"):
+        filters.append("extrastereo=m=1.08")
+        actions.append({"stage": "smart_ms_sculptor", "amount": 1.08})
 
     actions.append({"stage": "human_strategy", "profile": human_pass_strategy})
 

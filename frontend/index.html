@@ -3,24 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mastering Suite X</title>
+  <title>PGR Mastering</title>
   <link rel="stylesheet" href="/style.css">
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
 <body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-
   <main class="shell">
     <section class="hero">
-      <div class="badge">HUMAN ADAPTIVE MASTERING • PREMIUM ENGINE</div>
-      <h1>Mastering Suite X</h1>
-      <p>Motor de criterio humano: escucha la mezcla, detecta voz/coros/instrumental y decide procesamiento dinámico sin depender de presets rígidos.</p>
+      <div class="badge">PGR MASTERING • IMMERSIVE AUDIO LAB</div>
+      <h1>PGR Mastering</h1>
+      <p>Plataforma de mastering premium con separación IA real de stems, decisiones musicales asistidas y entregas listas para release.</p>
     </section>
 
     <section class="studio-grid">
       <article class="panel upload-panel">
         <h2>Session Builder</h2>
+
         <div class="control-group">
           <label for="file">Track principal</label>
           <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
@@ -41,7 +39,6 @@
               <option value="assistant_open">Open / Airy</option>
             </select>
           </div>
-
           <div class="control-group">
             <label for="genrePreset">Asistente de género</label>
             <select id="genrePreset">
@@ -52,7 +49,6 @@
               <option value="cinematic">Cinematic</option>
             </select>
           </div>
-
           <div class="control-group">
             <label for="targetLufs">Target LUFS</label>
             <select id="targetLufs">
@@ -61,7 +57,21 @@
               <option value="-9">Loud Club (-9)</option>
             </select>
           </div>
-
+          <div class="control-group">
+            <label for="stemMode">Separación rápida</label>
+            <select id="stemMode">
+              <option value="full_mix" selected>Mix completo</option>
+              <option value="vocals_only">Priorizar voz</option>
+              <option value="instrumental_only">Quitar voz (instrumental)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="deliveryTarget">Entrega final</label>
+            <select id="deliveryTarget">
+              <option value="streaming" selected>Streaming</option>
+              <option value="cd_master">CD / Loud Master</option>
+            </select>
+          </div>
           <div class="control-group span-2">
             <label for="intensity">Intensidad del asistente</label>
             <input id="intensity" type="range" min="20" max="100" value="72">
@@ -78,6 +88,24 @@
           <label><input id="modLimiter" type="checkbox" checked> True Peak Limiter</label>
         </div>
 
+        <div class="section-title">Funciones PRO</div>
+        <div class="module-grid">
+          <label><input id="fxAbMatch" type="checkbox" checked> A/B Match inteligente</label>
+          <label><input id="fxSectionTp" type="checkbox" checked> Guard clipping por secciones</label>
+          <label><input id="fxAiStem" type="checkbox" checked> Stem mastering inteligente</label>
+          <label><input id="fxHumanNotes" type="checkbox" checked> Human notes avanzado</label>
+          <label><input id="fxDeesser" type="checkbox" checked> De-esser dinámico</label>
+          <label><input id="fxPhaseFix" type="checkbox" checked> Fix fase/mono</label>
+          <label><input id="fxResonance" type="checkbox" checked> Detector de resonancias</label>
+          <label><input id="fxDither" type="checkbox" checked> Dither + noise shaping</label>
+          <label><input id="fxVocalPriority" type="checkbox" checked> Vocal Priority</label>
+          <label><input id="fxSmartLimiter" type="checkbox" checked> Limiter lookahead adaptativo</label>
+          <label><input id="fxLoudnessRadar" type="checkbox" checked> Loudness Radar</label>
+          <label><input id="fxBassNoteControl" type="checkbox" checked> Bajos por nota</label>
+          <label><input id="fxMsSculptor" type="checkbox" checked> Smart Mid/Side Sculptor</label>
+          <label><input id="fxQaPreflight" type="checkbox" checked> QA final pre-flight</label>
+        </div>
+
         <button id="masterBtn">Iniciar Mastering</button>
 
         <div class="wave-card">
@@ -90,7 +118,6 @@
 
         <div class="progress-wrap">
           <div class="progress-meta">
-            <span id="statusText">Esperando archivo...</span>
             <span id="progressLabel">0%</span>
           </div>
           <div class="progress-bar"><div id="progressBar"></div></div>
@@ -108,84 +135,60 @@
       <article class="panel insights-panel">
         <h2>Master Assistant</h2>
         <div class="meta-grid">
-          <div class="kv"><span>Perfil</span><strong id="profile">Mastering Suite X</strong></div>
+          <div class="kv"><span>Perfil</span><strong id="profile">PGR Mastering</strong></div>
           <div class="kv"><span>Estado</span><strong id="state">idle</strong></div>
           <div class="kv"><span>Backend</span><strong id="pluginBackend">native</strong></div>
           <div class="kv"><span>Confidence</span><strong id="confidence">--%</strong></div>
         </div>
 
         <div class="meter-grid">
-          <div class="meter-card">
-            <span>Dynamic Range</span>
-            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
-            <small id="meterDynamicsValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Stereo Width</span>
-            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
-            <small id="meterStereoValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Tonal Balance</span>
-            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
-            <small id="meterToneValue">--</small>
-          </div>
+          <div class="meter-card"><span>Dynamic Range</span><div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div><small id="meterDynamicsValue">--</small></div>
+          <div class="meter-card"><span>Stereo Width</span><div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div><small id="meterStereoValue">--</small></div>
+          <div class="meter-card"><span>Tonal Balance</span><div class="meter-track"><div id="meterTone" class="meter-fill"></div></div><small id="meterToneValue">--</small></div>
         </div>
 
-        <div class="meter-grid">
-          <div class="meter-card">
-            <span>Dynamic Range</span>
-            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
-            <small id="meterDynamicsValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Stereo Width</span>
-            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
-            <small id="meterStereoValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Tonal Balance</span>
-            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
-            <small id="meterToneValue">--</small>
-          </div>
-        </div>
-
-        <div class="section-title">Plan avanzado (estilo assistant)</div>
+        <div class="section-title">Plan avanzado</div>
         <ul id="advancedPlan" class="list"></ul>
+
+        <div class="section-title">Issues detectados</div>
+        <ul id="issues" class="list"></ul>
 
         <div class="section-title">Contexto musical detectado</div>
         <ul id="arrangementTags" class="pill-list"></ul>
 
-        <div class="section-title">Mapa de secciones (único)</div>
+        <div class="section-title">Mapa de secciones</div>
         <pre id="sectionMap">Sin datos todavía.</pre>
 
-        <div class="section-title">Nota humana de mastering (única)</div>
+        <div class="section-title">Loudness Radar</div>
+        <pre id="loudnessRadar">Sin datos de radar.</pre>
+
+        <div class="section-title">Nota humana de mastering</div>
         <pre id="humanNote">Esperando análisis para redactar nota automática...</pre>
 
         <div class="section-title">Cadena aplicada por backend</div>
         <ul id="actions" class="list"></ul>
 
-        <section class="iso-card" data-group="analysis" data-score="1">
-          <header>
-            <h3>Análisis Profundo</h3>
-            <span class="chip">Analyzer</span>
-          </header>
-          <pre id="analysisBox"></pre>
+        <section id="isotopeGrid">
+          <div class="iso-card" data-group="analysis" data-score="1">
+            <header><h3>Análisis Profundo</h3><span class="chip">Analyzer</span></header>
+            <pre id="analysisBox"></pre>
+          </div>
+          <div class="iso-card" data-group="decision" data-score="4">
+            <header><h3>Decisión del Motor</h3><span class="chip">Decision AI</span></header>
+            <pre id="decisionBox"></pre>
+          </div>
         </section>
-
-        <section class="iso-card" data-group="decision" data-score="4">
-          <header>
-            <h3>Decisión del Motor</h3>
-            <span class="chip">Decision AI</span>
-          </header>
-          <pre id="decisionBox"></pre>
-        </section>
-      </aside>
-    </section>
 
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>
           <a id="downloadMp3" href="#">Descargar MP3</a>
+          <a id="downloadAcapellaWav" href="#">Acapella WAV</a>
+          <a id="downloadAcapellaMp3" href="#">Acapella MP3</a>
+          <a id="downloadInstrumentalWav" href="#">Instrumental WAV</a>
+          <a id="downloadInstrumentalMp3" href="#">Instrumental MP3</a>
+          <a id="downloadDrumsMp3" href="#">Drums MP3 (IA)</a>
+          <a id="downloadBassMp3" href="#">Bass MP3 (IA)</a>
+          <a id="downloadOtherMp3" href="#">Music MP3 (IA)</a>
         </div>
       </article>
     </section>
