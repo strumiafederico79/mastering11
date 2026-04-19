@@ -48,22 +48,29 @@ const els = {
   sorts: document.querySelectorAll('.sort'),
 };
 
+function setText(el, value) {
+  if (el) el.textContent = value;
+}
+
 function setSteps(progress, status) {
-  [els.stepQueued, els.stepAnalyze, els.stepProcess, els.stepExport, els.stepDone].forEach(x => x.classList.remove('active'));
-  if (progress >= 0) els.stepQueued.classList.add('active');
-  if (progress >= 14) els.stepAnalyze.classList.add('active');
-  if (progress >= 44) els.stepProcess.classList.add('active');
-  if (progress >= 74) els.stepExport.classList.add('active');
-  if (status === 'done') els.stepDone.classList.add('active');
+  [els.stepQueued, els.stepAnalyze, els.stepProcess, els.stepExport, els.stepDone]
+    .filter(Boolean)
+    .forEach(x => x.classList.remove('active'));
+  if (progress >= 0) els.stepQueued?.classList.add('active');
+  if (progress >= 14) els.stepAnalyze?.classList.add('active');
+  if (progress >= 44) els.stepProcess?.classList.add('active');
+  if (progress >= 74) els.stepExport?.classList.add('active');
+  if (status === 'done') els.stepDone?.classList.add('active');
 }
 
 function updateProgress(progress) {
   const normalized = Math.max(2, progress || 0);
-  els.progressBar.style.width = `${normalized}%`;
-  els.progressLabel.textContent = `${Math.round(normalized)}%`;
+  if (els.progressBar) els.progressBar.style.width = `${normalized}%`;
+  setText(els.progressLabel, `${Math.round(normalized)}%`);
 }
 
 function applyFilter(filterValue) {
+  if (!els.isotopeGrid) return;
   const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
   cards.forEach(card => {
     const group = card.dataset.group;
@@ -73,6 +80,7 @@ function applyFilter(filterValue) {
 }
 
 function applySort(sortType) {
+  if (!els.isotopeGrid) return;
   const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
   cards.sort((a, b) => {
     if (sortType === 'score') {
@@ -105,18 +113,18 @@ async function refreshPluginInfo() {
   try {
     const res = await fetch('/api/plugins');
     const data = await res.json();
-    if (data.ladspa_filter) els.pluginBackend.textContent = 'ladspa/native';
-    else if (data.lv2_filter) els.pluginBackend.textContent = 'lv2/native';
-    else els.pluginBackend.textContent = 'native';
+    if (data.ladspa_filter) setText(els.pluginBackend, 'ladspa/native');
+    else if (data.lv2_filter) setText(els.pluginBackend, 'lv2/native');
+    else setText(els.pluginBackend, 'native');
 
     const modules = Object.entries(data.advanced_modules || {})
       .filter(([, enabled]) => Boolean(enabled))
       .map(([name]) => name);
     if (modules.length) {
-      els.statusText.textContent = `Módulos disponibles: ${modules.slice(0, 3).join(', ')}${modules.length > 3 ? '...' : ''}`;
+      setText(els.statusText, `Módulos disponibles: ${modules.slice(0, 3).join(', ')}${modules.length > 3 ? '...' : ''}`);
     }
   } catch (_) {
-    els.pluginBackend.textContent = 'native';
+    setText(els.pluginBackend, 'native');
   }
 }
 
@@ -136,6 +144,7 @@ function renderWave(file) {
 }
 
 function renderIssues(list) {
+  if (!els.issues) return;
   els.issues.innerHTML = '';
   (list || []).forEach(item => {
     const li = document.createElement('li');
@@ -145,6 +154,7 @@ function renderIssues(list) {
 }
 
 function renderActions(chain, decision) {
+  if (!els.actions) return;
   els.actions.innerHTML = '';
   const actions = chain?.actions || [];
   if (actions.length) {
@@ -163,6 +173,7 @@ function renderActions(chain, decision) {
 }
 
 function renderArrangementTags(tags) {
+  if (!els.arrangementTags) return;
   els.arrangementTags.innerHTML = '';
   (tags || []).forEach((tag) => {
     const li = document.createElement('li');
@@ -172,6 +183,7 @@ function renderArrangementTags(tags) {
 }
 
 function renderSectionMap(analysis) {
+  if (!els.sectionMap) return;
   const sections = analysis?.section_rms_db || [];
   if (!sections.length) {
     els.sectionMap.textContent = 'Sin datos de secciones.';
@@ -203,6 +215,7 @@ function buildHumanNote(analysis, decision) {
 }
 
 function setMeter(fillEl, valueEl, percent, label) {
+  if (!fillEl || !valueEl) return;
   fillEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   valueEl.textContent = label;
 }
@@ -298,6 +311,7 @@ function buildAdvancedPlan(data, localStats) {
 }
 
 function renderAdvancedPlan(items) {
+  if (!els.advancedPlan) return;
   els.advancedPlan.innerHTML = '';
   items.forEach((item) => {
     const li = document.createElement('li');
@@ -309,15 +323,15 @@ function renderAdvancedPlan(items) {
 async function uploadFile() {
   const file = els.file.files[0];
   if (!file) {
-    els.statusText.textContent = 'Selecciona un archivo primero.';
+    setText(els.statusText, 'Selecciona un archivo primero.');
     return;
   }
 
   renderWave(file);
   els.btn.disabled = true;
-  els.statusText.textContent = 'Analizando track localmente...';
-  els.downloads.classList.add('hidden');
-  els.progressBar.style.width = '3%';
+  setText(els.statusText, 'Analizando track localmente...');
+  els.downloads?.classList.add('hidden');
+  if (els.progressBar) els.progressBar.style.width = '3%';
 
   let localStats = null;
   try {
@@ -348,14 +362,14 @@ async function uploadFile() {
   }));
 
   try {
-    els.statusText.textContent = 'Subiendo al motor de mastering...';
+    setText(els.statusText, 'Subiendo al motor de mastering...');
     const res = await fetch('/api/jobs', { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     await pollJob(data.job_id, localStats);
   } catch (err) {
     console.error(err);
-    els.statusText.textContent = `Error al procesar: ${err.message}`;
+    setText(els.statusText, `Error al procesar: ${err.message}`);
   } finally {
     els.btn.disabled = false;
   }
@@ -366,30 +380,30 @@ async function pollJob(jobId, localStats) {
     const res = await fetch(`/api/jobs/${jobId}`);
     const data = await res.json();
 
-    els.state.textContent = data.status || '-';
-    els.profile.textContent = data.profile || 'Mastering Suite X';
-    els.analysisBox.textContent = JSON.stringify(data.analysis || {}, null, 2);
-    els.decisionBox.textContent = JSON.stringify(data.decision || {}, null, 2);
+    setText(els.state, data.status || '-');
+    setText(els.profile, data.profile || 'Mastering Suite X');
+    setText(els.analysisBox, JSON.stringify(data.analysis || {}, null, 2));
+    setText(els.decisionBox, JSON.stringify(data.decision || {}, null, 2));
     renderIssues(data.issues || []);
     renderActions(data.chain || {}, data.decision || {});
     renderAdvancedPlan(buildAdvancedPlan(data, localStats));
     renderArrangementTags(data.analysis?.arrangement_tags || data.decision?.arrangement_tags || []);
     renderSectionMap(data.analysis || {});
-    els.humanNote.textContent = buildHumanNote(data.analysis || {}, data.decision || {});
+    setText(els.humanNote, buildHumanNote(data.analysis || {}, data.decision || {}));
 
     const confidence = estimateConfidence((data.issues || []).length, els.intensity.value);
-    els.confidence.textContent = `${confidence}%`;
+    setText(els.confidence, `${confidence}%`);
 
     const progress = Math.max(3, data.progress || 0);
-    els.progressBar.style.width = `${progress}%`;
-    els.statusText.textContent = data.message || 'Procesando...';
+    updateProgress(progress);
+    setText(els.statusText, data.message || 'Procesando...');
     setSteps(progress, data.status || 'queued');
 
     if (data.status === 'done') {
-      els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav`;
-      els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3`;
-      els.downloads.classList.remove('hidden');
-      els.statusText.textContent = 'Master listo. Descarga disponible.';
+      if (els.downloadWav) els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav`;
+      if (els.downloadMp3) els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3`;
+      els.downloads?.classList.remove('hidden');
+      setText(els.statusText, 'Master listo. Descarga disponible.');
       return;
     }
     if (data.status === 'error') {
@@ -400,6 +414,6 @@ async function pollJob(jobId, localStats) {
   throw new Error('Timeout esperando el job.');
 }
 
-els.btn.addEventListener('click', uploadFile);
+els.btn?.addEventListener('click', uploadFile);
 initToolbar();
 refreshPluginInfo();
