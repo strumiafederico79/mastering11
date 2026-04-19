@@ -1,4 +1,6 @@
-import os, shutil, subprocess
+import os
+import shutil
+import subprocess
 
 def ffmpeg_supports(name: str) -> bool:
     try:
@@ -10,6 +12,18 @@ def ffmpeg_supports(name: str) -> bool:
 def scan_plugins() -> dict:
     ladspa_paths = ["/usr/lib/ladspa", "/usr/local/lib/ladspa"]
     lv2_paths = ["/usr/lib/lv2", "/usr/local/lib/lv2"]
+    advanced_modules = {
+        "dynamic_eq": True,
+        "multiband_glue": True,
+        "stereo_imager": True,
+        "harmonic_exciter": True,
+        "transient_shaper": True,
+        "true_peak_limiter": True,
+        "reference_match": True,
+        "vocal_focus": True,
+        "chorus_control": True,
+        "instrument_glue": True,
+    }
     return {
         "ffmpeg": shutil.which("ffmpeg") is not None,
         "ladspa_filter": ffmpeg_supports("ladspa"),
@@ -20,4 +34,5 @@ def scan_plugins() -> dict:
         "reaper_exists": shutil.which("reaper") is not None,
         "reaper_plugin_paths": [p for p in ladspa_paths + lv2_paths if os.path.isdir(p)],
         "backend_selected": "native",
+        "advanced_modules": advanced_modules,
     }
