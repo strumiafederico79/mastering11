@@ -8,6 +8,14 @@ def build_ffmpeg_filter_chain(decision: dict):
     actions = []
     modules = decision.get("advanced_modules", {})
     human_pass_strategy = decision.get("human_pass_strategy", "single_pass_balanced")
+    stem_mode = decision.get("stem_mode", "full_mix")
+
+    if stem_mode == "vocals_only":
+        filters.append("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1")
+        actions.append({"stage": "stem_vocals", "mode": "center_extract"})
+    elif stem_mode == "instrumental_only":
+        filters.append("pan=stereo|c0=c0-c1|c1=c1-c0")
+        actions.append({"stage": "stem_instrumental", "mode": "center_cancel"})
 
     if decision.get("tighten_low_end"):
         filters.append("highpass=f=25")
@@ -55,7 +63,8 @@ def build_ffmpeg_filter_chain(decision: dict):
         actions.append({"stage": "compressor", "drive": "medium"})
 
     if decision.get("boost_transients") and modules.get("transient_shaper", True):
-        filters.append("alimiter=limit=0.95:level=disabled")
+        # Keep limiter syntax broadly compatible with ffmpeg builds.
+        filters.append("alimiter=limit=0.95")
         actions.append({"stage": "transient_support", "focus": decision.get("transient_focus", "mid_high")})
 
     if decision.get("use_exciter") and modules.get("harmonic_exciter", True):
@@ -65,6 +74,10 @@ def build_ffmpeg_filter_chain(decision: dict):
     if modules.get("multiband_glue", True):
         filters.append("acompressor=threshold=0.11:ratio=1.5:attack=6:release=110:makeup=0.3")
         actions.append({"stage": "multiband_glue", "profile": "transparent"})
+
+    if decision.get("human_glue_stage", True):
+        filters.append("acompressor=threshold=0.09:ratio=1.3:attack=35:release=260:makeup=0.2")
+        actions.append({"stage": "human_glue", "profile": "bus_like"})
 
     vocal_presence_boost_db = float(decision.get("vocal_presence_boost_db", 0.0))
     if vocal_presence_boost_db > 0:
@@ -83,6 +96,14 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append(f"volume={_db(instrument_glue_db)}dB")
         actions.append({"stage": "instrument_glue", "db": instrument_glue_db})
 
+    if decision.get("cd_low_weight_stage"):
+        filters.append("equalizer=f=95:t=q:w=0.9:g=0.80")
+        actions.append({"stage": "cd_low_weight", "db": 0.8, "hz": 95})
+
+    if decision.get("cd_presence_stage"):
+        filters.append("equalizer=f=3300:t=q:w=0.8:g=0.60")
+        actions.append({"stage": "cd_presence", "db": 0.6, "hz": 3300})
+
     if modules.get("stereo_imager", True) and decision.get("widen_stereo", True):
         actions.append({
             "stage": "stereo_imager",
@@ -91,7 +112,8 @@ def build_ffmpeg_filter_chain(decision: dict):
         })
 
     if modules.get("true_peak_limiter", True):
-        filters.append("alimiter=limit=0.98:level=disabled")
+        # Keep limiter syntax broadly compatible with ffmpeg builds.
+        filters.append("alimiter=limit=0.98")
         actions.append({"stage": "true_peak_limiter", "ceiling": decision.get("limiter_ceiling_dbtp", -1.0)})
 
     actions.append({"stage": "human_strategy", "profile": human_pass_strategy})

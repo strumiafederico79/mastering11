@@ -18,6 +18,8 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
     decision = {
         "preset_name": "Human Adaptive Master",
         "target_lufs": -10.5,
+        "stem_mode": "full_mix",
+        "delivery_target": "streaming",
         "tighten_low_end": False,
         "tighten_low_end_strength": "medium",
         "mud_cut_db": 0.0,
@@ -45,6 +47,9 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         "chorus_smooth_db": 0.0,
         "chorus_smooth_hz": 4800,
         "instrument_glue_db": 0.0,
+        "human_glue_stage": True,
+        "cd_presence_stage": False,
+        "cd_low_weight_stage": False,
         "actions": [],
         "notes": [],
         "genre": "general",
@@ -187,6 +192,26 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         for module_name, enabled in modules.items():
             if module_name in decision["advanced_modules"]:
                 decision["advanced_modules"][module_name] = bool(enabled)
+
+    stem_mode = options.get("stem_mode")
+    if stem_mode in {"full_mix", "vocals_only", "instrumental_only"}:
+        decision["stem_mode"] = stem_mode
+        if stem_mode == "vocals_only":
+            decision["actions"].append("Preproceso stem: enfoque en voz (centro)")
+        elif stem_mode == "instrumental_only":
+            decision["actions"].append("Preproceso stem: atenuación de voz para instrumental")
+
+    delivery_target = options.get("delivery_target")
+    if delivery_target in {"streaming", "cd_master"}:
+        decision["delivery_target"] = delivery_target
+        if delivery_target == "cd_master":
+            decision["preset_name"] = "Human Adaptive Master • CD Finish"
+            decision["target_lufs"] = max(decision["target_lufs"], -9.2)
+            decision["limiter_ceiling_dbtp"] = -0.3
+            decision["multiband_drive"] = "high"
+            decision["cd_presence_stage"] = True
+            decision["cd_low_weight_stage"] = True
+            decision["actions"].append("Entrega CD: loudness, pegada y estabilidad de traducción")
 
     if not decision["actions"]:
         decision["actions"].append("Glue sutil y control final")
