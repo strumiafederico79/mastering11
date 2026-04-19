@@ -6,6 +6,19 @@ def export_mp3(in_wav: str, out_mp3: str) -> None:
         check=True, capture_output=True, text=True,
     )
 
+def export_stem(in_wav: str, out_wav: str, stem_mode: str) -> None:
+    if stem_mode == "acapella":
+        af = "pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1"
+    elif stem_mode == "instrumental":
+        af = "pan=stereo|c0=c0-c1|c1=c1-c0"
+    else:
+        raise ValueError(f"stem_mode inválido: {stem_mode}")
+
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", in_wav, "-af", af, "-ar", "44100", "-ac", "2", out_wav],
+        check=True, capture_output=True, text=True,
+    )
+
 def loudnorm_two_pass(in_wav: str, out_wav: str, target_lufs: float, true_peak: float = -1.0, lra: float = 11.0) -> dict:
     cmd1 = [
         "ffmpeg", "-y", "-i", in_wav,

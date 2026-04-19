@@ -7,9 +7,45 @@ from app.services.audio_io import load_audio_for_analysis
 from app.services.analyzer import analyze_audio
 from app.services.decision_engine import decide_mastering
 from app.services.mastering_chain import build_ffmpeg_filter_chain
-from app.services.ffmpeg_tools import export_mp3, loudnorm_two_pass
+from app.services.ffmpeg_tools import export_mp3, export_stem, loudnorm_two_pass
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
+
+def _normalize_af_chain(af_chain: str) -> str:
+    """
+    Normalize known-incompatible filter params that may still appear in old jobs
+    or stale worker deployments.
+    """
+    normalized = af_chain.replace(":level=disabled", "")
+    # Clean accidental duplicate separators.
+    normalized = ",".join([chunk for chunk in normalized.split(",") if chunk])
+    return normalized
+
+def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
+    try:
+        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        return
+    except subprocess.CalledProcessError as ff_err:
+        stderr_text = (ff_err.stderr or "").strip()
+        stdout_text = (ff_err.stdout or "").strip()
+
+    normalized_chain = _normalize_af_chain(af_chain)
+    if normalized_chain != af_chain:
+        retry_cmd = cmd_stage1.copy()
+        retry_cmd[retry_cmd.index("-af") + 1] = normalized_chain
+        try:
+            subprocess.run(retry_cmd, check=True, capture_output=True, text=True)
+            return
+        except subprocess.CalledProcessError as retry_err:
+            stderr_text = ((retry_err.stderr or "").strip() or stderr_text)
+            stdout_text = ((retry_err.stdout or "").strip() or stdout_text)
+            ff_err = retry_err
+
+    debug_tail = (stderr_text or stdout_text)[-3000:]
+    raise RuntimeError(
+        f"Falló ffmpeg en etapa 1 (exit={ff_err.returncode}). "
+        f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
+    ) from ff_err
 
 def update_job(job_id: str, **fields):
     try:
@@ -25,6 +61,10 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
     stage1_wav = OUTPUT_DIR / f"{job_id}_stage1.wav"
     final_wav = OUTPUT_DIR / f"{job_id}.wav"
     final_mp3 = OUTPUT_DIR / f"{job_id}.mp3"
+    acapella_wav = OUTPUT_DIR / f"{job_id}_acapella.wav"
+    acapella_mp3 = OUTPUT_DIR / f"{job_id}_acapella.mp3"
+    instrumental_wav = OUTPUT_DIR / f"{job_id}_instrumental.wav"
+    instrumental_mp3 = OUTPUT_DIR / f"{job_id}_instrumental.mp3"
 
     try:
         update_job(job_id, status="processing", progress=5, message="Cargando audio...")
@@ -52,13 +92,19 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
             str(stage1_wav),
         ]
         print(f"[{job_id}] STAGE1 FFMPEG", flush=True)
-        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        _run_stage1_ffmpeg(cmd_stage1, af_chain)
 
         update_job(job_id, progress=75, message="Normalizando loudness...", chain={"stages": [a["stage"] for a in actions], "actions": actions})
         metrics = loudnorm_two_pass(str(stage1_wav), str(final_wav), decision["target_lufs"], decision["limiter_ceiling_dbtp"], 11.0)
 
         update_job(job_id, progress=90, message="Exportando MP3...", metrics=metrics)
         export_mp3(str(final_wav), str(final_mp3))
+
+        update_job(job_id, progress=94, message="Generando acapella e instrumental...")
+        export_stem(str(final_wav), str(acapella_wav), stem_mode="acapella")
+        export_stem(str(final_wav), str(instrumental_wav), stem_mode="instrumental")
+        export_mp3(str(acapella_wav), str(acapella_mp3))
+        export_mp3(str(instrumental_wav), str(instrumental_mp3))
 
         append_learning({
             "genre": decision.get("genre", "general"),
@@ -72,7 +118,14 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
             progress=100,
             message="Mastering terminado.",
             profile=decision.get("preset_name", "Human Master"),
-            outputs={"wav_path": str(final_wav), "mp3_path": str(final_mp3)},
+            outputs={
+                "wav_path": str(final_wav),
+                "mp3_path": str(final_mp3),
+                "acapella_wav_path": str(acapella_wav),
+                "acapella_mp3_path": str(acapella_mp3),
+                "instrumental_wav_path": str(instrumental_wav),
+                "instrumental_mp3_path": str(instrumental_mp3),
+            },
             error=None,
         )
         print(f"[{job_id}] DONE", flush=True)

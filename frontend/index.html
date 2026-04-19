@@ -62,6 +62,23 @@
             </select>
           </div>
 
+          <div class="control-group">
+            <label for="stemMode">Separación rápida</label>
+            <select id="stemMode">
+              <option value="full_mix" selected>Mix completo</option>
+              <option value="vocals_only">Priorizar voz</option>
+              <option value="instrumental_only">Quitar voz (instrumental)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="deliveryTarget">Entrega final</label>
+            <select id="deliveryTarget">
+              <option value="streaming" selected>Streaming</option>
+              <option value="cd_master">CD / Loud Master</option>
+            </select>
+          </div>
+
           <div class="control-group span-2">
             <label for="intensity">Intensidad del asistente</label>
             <input id="intensity" type="range" min="20" max="100" value="72">
@@ -186,6 +203,10 @@
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>
           <a id="downloadMp3" href="#">Descargar MP3</a>
+          <a id="downloadAcapellaWav" href="#">Acapella WAV</a>
+          <a id="downloadAcapellaMp3" href="#">Acapella MP3</a>
+          <a id="downloadInstrumentalWav" href="#">Instrumental WAV</a>
+          <a id="downloadInstrumentalMp3" href="#">Instrumental MP3</a>
         </div>
       </article>
     </section>
