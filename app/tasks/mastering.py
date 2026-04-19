@@ -1,4 +1,5 @@
 import traceback, subprocess
+from pathlib import Path
 
 from app.worker_app import celery_app
 from app.core.paths import UPLOAD_DIR, OUTPUT_DIR
@@ -7,9 +8,52 @@ from app.services.audio_io import load_audio_for_analysis
 from app.services.analyzer import analyze_audio
 from app.services.decision_engine import decide_mastering
 from app.services.mastering_chain import build_ffmpeg_filter_chain
-from app.services.ffmpeg_tools import apply_dither, export_mp3, export_stem, loudnorm_two_pass
+from app.services.ffmpeg_tools import apply_dither, export_mp3, export_stem, loudnorm_two_pass, mix_stems_to_instrumental
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
+from app.services.source_separation import separate_with_demucs
+
+def _normalize_af_chain(af_chain: str) -> str:
+    """
+    Normalize known-incompatible filter params that may still appear in old jobs
+    or stale worker deployments.
+    """
+    normalized = af_chain.replace(":level=disabled", "")
+    # Clean accidental duplicate separators.
+    normalized = ",".join([chunk for chunk in normalized.split(",") if chunk])
+    return normalized
+
+def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
+    last_ff_err: subprocess.CalledProcessError | None = None
+    stderr_text = ""
+    stdout_text = ""
+
+    try:
+        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        return
+    except subprocess.CalledProcessError as ff_err:
+        last_ff_err = ff_err
+        stderr_text = (ff_err.stderr or "").strip()
+        stdout_text = (ff_err.stdout or "").strip()
+
+    normalized_chain = _normalize_af_chain(af_chain)
+    if normalized_chain != af_chain:
+        retry_cmd = cmd_stage1.copy()
+        retry_cmd[retry_cmd.index("-af") + 1] = normalized_chain
+        try:
+            subprocess.run(retry_cmd, check=True, capture_output=True, text=True)
+            return
+        except subprocess.CalledProcessError as retry_err:
+            stderr_text = ((retry_err.stderr or "").strip() or stderr_text)
+            stdout_text = ((retry_err.stdout or "").strip() or stdout_text)
+            last_ff_err = retry_err
+
+    debug_tail = (stderr_text or stdout_text)[-3000:]
+    err_code = last_ff_err.returncode if last_ff_err is not None else "unknown"
+    raise RuntimeError(
+        f"Falló ffmpeg en etapa 1 (exit={err_code}). "
+        f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
+    ) from last_ff_err
 
 def _normalize_af_chain(af_chain: str) -> str:
     """
@@ -88,6 +132,9 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
     acapella_mp3 = OUTPUT_DIR / f"{job_id}_acapella.mp3"
     instrumental_wav = OUTPUT_DIR / f"{job_id}_instrumental.wav"
     instrumental_mp3 = OUTPUT_DIR / f"{job_id}_instrumental.mp3"
+    drums_mp3 = OUTPUT_DIR / f"{job_id}_drums.mp3"
+    bass_mp3 = OUTPUT_DIR / f"{job_id}_bass.mp3"
+    other_mp3 = OUTPUT_DIR / f"{job_id}_other.mp3"
 
     try:
         update_job(job_id, status="processing", progress=5, message="Cargando audio...")
@@ -131,8 +178,27 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
         export_mp3(str(final_wav), str(final_mp3))
 
         update_job(job_id, progress=94, message="Generando acapella e instrumental...")
-        export_stem(str(final_wav), str(acapella_wav), stem_mode="acapella")
-        export_stem(str(final_wav), str(instrumental_wav), stem_mode="instrumental")
+        demucs_stems = None
+        try:
+            demucs_stems = separate_with_demucs(str(input_path), str(OUTPUT_DIR / f"{job_id}_stems"))
+        except Exception:
+            demucs_stems = None
+
+        if demucs_stems:
+            acapella_wav = Path(demucs_stems["vocals_wav_path"])
+            mix_stems_to_instrumental(
+                demucs_stems["drums_wav_path"],
+                demucs_stems["bass_wav_path"],
+                demucs_stems["other_wav_path"],
+                str(instrumental_wav),
+            )
+            export_mp3(demucs_stems["drums_wav_path"], str(drums_mp3))
+            export_mp3(demucs_stems["bass_wav_path"], str(bass_mp3))
+            export_mp3(demucs_stems["other_wav_path"], str(other_mp3))
+        else:
+            export_stem(str(final_wav), str(acapella_wav), stem_mode="acapella")
+            export_stem(str(final_wav), str(instrumental_wav), stem_mode="instrumental")
+
         export_mp3(str(acapella_wav), str(acapella_mp3))
         export_mp3(str(instrumental_wav), str(instrumental_mp3))
 
@@ -155,6 +221,10 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
                 "acapella_mp3_path": str(acapella_mp3),
                 "instrumental_wav_path": str(instrumental_wav),
                 "instrumental_mp3_path": str(instrumental_mp3),
+                "drums_mp3_path": str(drums_mp3) if drums_mp3.exists() else None,
+                "bass_mp3_path": str(bass_mp3) if bass_mp3.exists() else None,
+                "other_mp3_path": str(other_mp3) if other_mp3.exists() else None,
+                "source_separation": "demucs" if demucs_stems else "fast_stereo_extract",
             },
             error=None,
         )

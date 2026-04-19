@@ -57,3 +57,18 @@ def apply_dither(in_wav: str, out_wav: str, profile: str = "triangular_hp") -> N
         ["ffmpeg", "-y", "-i", in_wav, "-af", af, "-c:a", "pcm_s16le", out_wav],
         check=True, capture_output=True, text=True,
     )
+
+def mix_stems_to_instrumental(drums_wav: str, bass_wav: str, other_wav: str, out_wav: str) -> None:
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", drums_wav,
+            "-i", bass_wav,
+            "-i", other_wav,
+            "-filter_complex", "amix=inputs=3:normalize=0",
+            "-ar", "44100",
+            "-ac", "2",
+            out_wav,
+        ],
+        check=True, capture_output=True, text=True,
+    )

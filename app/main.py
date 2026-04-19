@@ -87,7 +87,7 @@ def get_job(job_id: str):
 def download_job_output(
     job_id: str,
     fmt: str = Query("wav", pattern="^(wav|mp3)$"),
-    variant: str = Query("master", pattern="^(master|acapella|instrumental)$"),
+    variant: str = Query("master", pattern="^(master|acapella|instrumental|drums|bass|other)$"),
 ):
     try:
         payload = read_job(job_id)
@@ -99,6 +99,12 @@ def download_job_output(
         path_key = "wav_path" if fmt == "wav" else "mp3_path"
     elif variant == "acapella":
         path_key = "acapella_wav_path" if fmt == "wav" else "acapella_mp3_path"
+    elif variant == "drums":
+        path_key = "drums_mp3_path"
+    elif variant == "bass":
+        path_key = "bass_mp3_path"
+    elif variant == "other":
+        path_key = "other_mp3_path"
     else:
         path_key = "instrumental_wav_path" if fmt == "wav" else "instrumental_mp3_path"
     file_path = payload.get("outputs", {}).get(path_key)

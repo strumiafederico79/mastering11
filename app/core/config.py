@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    app_name: str = "AI Mastering V8.5 PRO REAL"
+    app_name: str = "PGR Mastering"
     max_upload_mb: int = 300
     data_dir: str = "/data"
     upload_dir: str = "/data/uploads"

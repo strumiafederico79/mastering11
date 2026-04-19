@@ -53,6 +53,9 @@ const els = {
   downloadAcapellaMp3: document.getElementById('downloadAcapellaMp3'),
   downloadInstrumentalWav: document.getElementById('downloadInstrumentalWav'),
   downloadInstrumentalMp3: document.getElementById('downloadInstrumentalMp3'),
+  downloadDrumsMp3: document.getElementById('downloadDrumsMp3'),
+  downloadBassMp3: document.getElementById('downloadBassMp3'),
+  downloadOtherMp3: document.getElementById('downloadOtherMp3'),
   meterDynamics: document.getElementById('meterDynamics'),
   meterStereo: document.getElementById('meterStereo'),
   meterTone: document.getElementById('meterTone'),
@@ -447,7 +450,7 @@ async function pollJob(jobId, localStats) {
     const data = await res.json();
 
     setText(els.state, data.status || '-');
-    setText(els.profile, data.profile || 'Mastering Suite X');
+    setText(els.profile, data.profile || 'PGR Mastering');
     setText(els.analysisBox, JSON.stringify(data.analysis || {}, null, 2));
     setText(els.decisionBox, JSON.stringify(data.decision || {}, null, 2));
     renderIssues(data.issues || []);
@@ -473,6 +476,9 @@ async function pollJob(jobId, localStats) {
       if (els.downloadAcapellaMp3) els.downloadAcapellaMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=acapella`;
       if (els.downloadInstrumentalWav) els.downloadInstrumentalWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=instrumental`;
       if (els.downloadInstrumentalMp3) els.downloadInstrumentalMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=instrumental`;
+      if (els.downloadDrumsMp3) els.downloadDrumsMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=drums`;
+      if (els.downloadBassMp3) els.downloadBassMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=bass`;
+      if (els.downloadOtherMp3) els.downloadOtherMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=other`;
       els.downloads?.classList.remove('hidden');
       setText(els.statusText, 'Master listo. Descarga disponible.');
       return;
