@@ -1,4 +1,14 @@
-# AI Mastering V8.5 PRO REAL
+# PGR Mastering
+
+## Dependencias
+
+Base (obligatorias):
+- Python deps en `requirements.txt`
+- Sistema: `ffmpeg`, `libsndfile1`
+
+IA Source Separation (opcional):
+- `demucs` (en `requirements-ai.txt`)
+- Se instala solo si activas build arg `ENABLE_AI_SEPARATION=1`
 
 Run:
 ```bash
@@ -6,6 +16,12 @@ cp .env.example .env
 mkdir -p data/uploads data/outputs data/jobs data/learning references
 docker compose down --remove-orphans
 docker compose build --no-cache
+docker compose up -d
+```
+
+### Build con separación IA real (Demucs)
+```bash
+docker compose build --no-cache --build-arg ENABLE_AI_SEPARATION=1
 docker compose up -d
 ```
 
