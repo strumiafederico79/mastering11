@@ -72,6 +72,7 @@
               <option value="cd_master">CD / Loud Master</option>
             </select>
           </div>
+
           <div class="control-group span-2">
             <label for="intensity">Intensidad del asistente</label>
             <input id="intensity" type="range" min="20" max="100" value="72">
@@ -147,7 +148,25 @@
           <div class="meter-card"><span>Tonal Balance</span><div class="meter-track"><div id="meterTone" class="meter-fill"></div></div><small id="meterToneValue">--</small></div>
         </div>
 
-        <div class="section-title">Plan avanzado</div>
+        <div class="meter-grid">
+          <div class="meter-card">
+            <span>Dynamic Range</span>
+            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
+            <small id="meterDynamicsValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Stereo Width</span>
+            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
+            <small id="meterStereoValue">--</small>
+          </div>
+          <div class="meter-card">
+            <span>Tonal Balance</span>
+            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
+            <small id="meterToneValue">--</small>
+          </div>
+        </div>
+
+        <div class="section-title">Plan avanzado (estilo assistant)</div>
         <ul id="advancedPlan" class="list"></ul>
 
         <div class="section-title">Issues detectados</div>
@@ -162,7 +181,7 @@
         <div class="section-title">Loudness Radar</div>
         <pre id="loudnessRadar">Sin datos de radar.</pre>
 
-        <div class="section-title">Nota humana de mastering</div>
+        <div class="section-title">Nota humana de mastering (única)</div>
         <pre id="humanNote">Esperando análisis para redactar nota automática...</pre>
 
         <div class="section-title">Cadena aplicada por backend</div>
