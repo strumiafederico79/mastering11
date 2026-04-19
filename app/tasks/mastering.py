@@ -55,48 +55,6 @@ def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
         f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
     ) from last_ff_err
 
-def _normalize_af_chain(af_chain: str) -> str:
-    """
-    Normalize known-incompatible filter params that may still appear in old jobs
-    or stale worker deployments.
-    """
-    normalized = af_chain.replace(":level=disabled", "")
-    # Clean accidental duplicate separators.
-    normalized = ",".join([chunk for chunk in normalized.split(",") if chunk])
-    return normalized
-
-def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
-    last_ff_err: subprocess.CalledProcessError | None = None
-    stderr_text = ""
-    stdout_text = ""
-
-    try:
-        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
-        return
-    except subprocess.CalledProcessError as ff_err:
-        last_ff_err = ff_err
-        stderr_text = (ff_err.stderr or "").strip()
-        stdout_text = (ff_err.stdout or "").strip()
-
-    normalized_chain = _normalize_af_chain(af_chain)
-    if normalized_chain != af_chain:
-        retry_cmd = cmd_stage1.copy()
-        retry_cmd[retry_cmd.index("-af") + 1] = normalized_chain
-        try:
-            subprocess.run(retry_cmd, check=True, capture_output=True, text=True)
-            return
-        except subprocess.CalledProcessError as retry_err:
-            stderr_text = ((retry_err.stderr or "").strip() or stderr_text)
-            stdout_text = ((retry_err.stdout or "").strip() or stdout_text)
-            last_ff_err = retry_err
-
-    debug_tail = (stderr_text or stdout_text)[-3000:]
-    err_code = last_ff_err.returncode if last_ff_err is not None else "unknown"
-    raise RuntimeError(
-        f"Falló ffmpeg en etapa 1 (exit={err_code}). "
-        f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
-    ) from last_ff_err
-
 def update_job(job_id: str, **fields):
     try:
         payload = read_job(job_id)
@@ -109,7 +67,11 @@ def build_preflight_report(analysis: dict, decision: dict, metrics: dict) -> dic
     clipping_sections = analysis.get("clipping_sections", [])
     tp_est = float(analysis.get("true_peak_est_db", -3.0))
     target_lufs = float(decision.get("target_lufs", -11.0))
-    input_i = float(metrics.get("input_i", -18.0)) if metrics else -18.0
+    input_i_raw = metrics.get("input_i", -18.0) if metrics else -18.0
+    try:
+        input_i = float(input_i_raw)
+    except (TypeError, ValueError):
+        input_i = -18.0
     return {
         "ok": len(clipping_sections) == 0 and tp_est < -0.1,
         "checks": {

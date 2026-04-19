@@ -8,9 +8,6 @@
   <script src="https://unpkg.com/wavesurfer.js"></script>
 </head>
 <body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-
   <main class="shell">
     <section class="hero">
       <div class="badge">PGR MASTERING • IMMERSIVE AUDIO LAB</div>
@@ -21,6 +18,7 @@
     <section class="studio-grid">
       <article class="panel upload-panel">
         <h2>Session Builder</h2>
+
         <div class="control-group">
           <label for="file">Track principal</label>
           <input id="file" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*">
@@ -41,7 +39,6 @@
               <option value="assistant_open">Open / Airy</option>
             </select>
           </div>
-
           <div class="control-group">
             <label for="genrePreset">Asistente de género</label>
             <select id="genrePreset">
@@ -52,7 +49,6 @@
               <option value="cinematic">Cinematic</option>
             </select>
           </div>
-
           <div class="control-group">
             <label for="targetLufs">Target LUFS</label>
             <select id="targetLufs">
@@ -61,7 +57,6 @@
               <option value="-9">Loud Club (-9)</option>
             </select>
           </div>
-
           <div class="control-group">
             <label for="stemMode">Separación rápida</label>
             <select id="stemMode">
@@ -70,7 +65,6 @@
               <option value="instrumental_only">Quitar voz (instrumental)</option>
             </select>
           </div>
-
           <div class="control-group">
             <label for="deliveryTarget">Entrega final</label>
             <select id="deliveryTarget">
@@ -125,7 +119,6 @@
 
         <div class="progress-wrap">
           <div class="progress-meta">
-            <span id="statusText">Esperando archivo...</span>
             <span id="progressLabel">0%</span>
           </div>
           <div class="progress-bar"><div id="progressBar"></div></div>
@@ -150,39 +143,9 @@
         </div>
 
         <div class="meter-grid">
-          <div class="meter-card">
-            <span>Dynamic Range</span>
-            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
-            <small id="meterDynamicsValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Stereo Width</span>
-            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
-            <small id="meterStereoValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Tonal Balance</span>
-            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
-            <small id="meterToneValue">--</small>
-          </div>
-        </div>
-
-        <div class="meter-grid">
-          <div class="meter-card">
-            <span>Dynamic Range</span>
-            <div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div>
-            <small id="meterDynamicsValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Stereo Width</span>
-            <div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div>
-            <small id="meterStereoValue">--</small>
-          </div>
-          <div class="meter-card">
-            <span>Tonal Balance</span>
-            <div class="meter-track"><div id="meterTone" class="meter-fill"></div></div>
-            <small id="meterToneValue">--</small>
-          </div>
+          <div class="meter-card"><span>Dynamic Range</span><div class="meter-track"><div id="meterDynamics" class="meter-fill"></div></div><small id="meterDynamicsValue">--</small></div>
+          <div class="meter-card"><span>Stereo Width</span><div class="meter-track"><div id="meterStereo" class="meter-fill"></div></div><small id="meterStereoValue">--</small></div>
+          <div class="meter-card"><span>Tonal Balance</span><div class="meter-track"><div id="meterTone" class="meter-fill"></div></div><small id="meterToneValue">--</small></div>
         </div>
 
         <div class="meter-grid">
@@ -206,10 +169,13 @@
         <div class="section-title">Plan avanzado (estilo assistant)</div>
         <ul id="advancedPlan" class="list"></ul>
 
+        <div class="section-title">Issues detectados</div>
+        <ul id="issues" class="list"></ul>
+
         <div class="section-title">Contexto musical detectado</div>
         <ul id="arrangementTags" class="pill-list"></ul>
 
-        <div class="section-title">Mapa de secciones (único)</div>
+        <div class="section-title">Mapa de secciones</div>
         <pre id="sectionMap">Sin datos todavía.</pre>
 
         <div class="section-title">Loudness Radar</div>
@@ -221,23 +187,16 @@
         <div class="section-title">Cadena aplicada por backend</div>
         <ul id="actions" class="list"></ul>
 
-        <section class="iso-card" data-group="analysis" data-score="1">
-          <header>
-            <h3>Análisis Profundo</h3>
-            <span class="chip">Analyzer</span>
-          </header>
-          <pre id="analysisBox"></pre>
+        <section id="isotopeGrid">
+          <div class="iso-card" data-group="analysis" data-score="1">
+            <header><h3>Análisis Profundo</h3><span class="chip">Analyzer</span></header>
+            <pre id="analysisBox"></pre>
+          </div>
+          <div class="iso-card" data-group="decision" data-score="4">
+            <header><h3>Decisión del Motor</h3><span class="chip">Decision AI</span></header>
+            <pre id="decisionBox"></pre>
+          </div>
         </section>
-
-        <section class="iso-card" data-group="decision" data-score="4">
-          <header>
-            <h3>Decisión del Motor</h3>
-            <span class="chip">Decision AI</span>
-          </header>
-          <pre id="decisionBox"></pre>
-        </section>
-      </aside>
-    </section>
 
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>

@@ -83,6 +83,7 @@ def analyze_audio(y, sr):
         chunk = y[start:end]
         if len(chunk) == 0:
             section_rms_db.append(-80.0)
+            section_peak_db.append(-80.0)
             continue
         chunk_rms = float(np.sqrt(np.mean(np.square(chunk))) + 1e-8)
         section_rms_db.append(float(20 * np.log10(chunk_rms + 1e-8)))
