@@ -52,7 +52,16 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
             str(stage1_wav),
         ]
         print(f"[{job_id}] STAGE1 FFMPEG", flush=True)
-        subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        try:
+            subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as ff_err:
+            ffmpeg_stderr = (ff_err.stderr or "").strip()
+            ffmpeg_stdout = (ff_err.stdout or "").strip()
+            debug_tail = (ffmpeg_stderr or ffmpeg_stdout)[-2000:]
+            raise RuntimeError(
+                f"Falló ffmpeg en etapa 1 (exit={ff_err.returncode}). "
+                f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
+            ) from ff_err
 
         update_job(job_id, progress=75, message="Normalizando loudness...", chain={"stages": [a["stage"] for a in actions], "actions": actions})
         metrics = loudnorm_two_pass(str(stage1_wav), str(final_wav), decision["target_lufs"], decision["limiter_ceiling_dbtp"], 11.0)

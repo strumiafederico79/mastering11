@@ -55,7 +55,8 @@ def build_ffmpeg_filter_chain(decision: dict):
         actions.append({"stage": "compressor", "drive": "medium"})
 
     if decision.get("boost_transients") and modules.get("transient_shaper", True):
-        filters.append("alimiter=limit=0.95:level=disabled")
+        # Keep limiter syntax broadly compatible with ffmpeg builds.
+        filters.append("alimiter=limit=0.95")
         actions.append({"stage": "transient_support", "focus": decision.get("transient_focus", "mid_high")})
 
     if decision.get("use_exciter") and modules.get("harmonic_exciter", True):
@@ -91,7 +92,8 @@ def build_ffmpeg_filter_chain(decision: dict):
         })
 
     if modules.get("true_peak_limiter", True):
-        filters.append("alimiter=limit=0.98:level=disabled")
+        # Keep limiter syntax broadly compatible with ffmpeg builds.
+        filters.append("alimiter=limit=0.98")
         actions.append({"stage": "true_peak_limiter", "ceiling": decision.get("limiter_ceiling_dbtp", -1.0)})
 
     actions.append({"stage": "human_strategy", "profile": human_pass_strategy})
