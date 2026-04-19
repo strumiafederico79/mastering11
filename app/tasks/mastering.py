@@ -22,10 +22,15 @@ def _normalize_af_chain(af_chain: str) -> str:
     return normalized
 
 def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
+    last_ff_err: subprocess.CalledProcessError | None = None
+    stderr_text = ""
+    stdout_text = ""
+
     try:
         subprocess.run(cmd_stage1, check=True, capture_output=True, text=True)
         return
     except subprocess.CalledProcessError as ff_err:
+        last_ff_err = ff_err
         stderr_text = (ff_err.stderr or "").strip()
         stdout_text = (ff_err.stdout or "").strip()
 
@@ -39,13 +44,14 @@ def _run_stage1_ffmpeg(cmd_stage1: list[str], af_chain: str) -> None:
         except subprocess.CalledProcessError as retry_err:
             stderr_text = ((retry_err.stderr or "").strip() or stderr_text)
             stdout_text = ((retry_err.stdout or "").strip() or stdout_text)
-            ff_err = retry_err
+            last_ff_err = retry_err
 
     debug_tail = (stderr_text or stdout_text)[-3000:]
+    err_code = last_ff_err.returncode if last_ff_err is not None else "unknown"
     raise RuntimeError(
-        f"Falló ffmpeg en etapa 1 (exit={ff_err.returncode}). "
+        f"Falló ffmpeg en etapa 1 (exit={err_code}). "
         f"Detalle: {debug_tail or 'sin salida de diagnóstico'}"
-    ) from ff_err
+    ) from last_ff_err
 
 def update_job(job_id: str, **fields):
     try:
