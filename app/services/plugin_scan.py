@@ -20,6 +20,9 @@ def scan_plugins() -> dict:
         "transient_shaper": True,
         "true_peak_limiter": True,
         "reference_match": True,
+        "vocal_focus": True,
+        "chorus_control": True,
+        "instrument_glue": True,
     }
     return {
         "ffmpeg": shutil.which("ffmpeg") is not None,

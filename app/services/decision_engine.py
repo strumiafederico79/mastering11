@@ -6,10 +6,15 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
     high = float(analysis.get("high", 0.0))
     air = float(analysis.get("air", 0.0))
     crest = float(analysis.get("crest", 0.0))
+    vocal_presence = float(analysis.get("vocal_presence", 0.0))
+    chorus_density = float(analysis.get("chorus_density", 0.0))
+    harmonic_ratio = float(analysis.get("harmonic_ratio", 1.0))
+    arrangement_focus = str(analysis.get("arrangement_focus", "balanced_mix"))
+    arrangement_tags = list(analysis.get("arrangement_tags", []))
     issues = list(analysis.get("issues", []))
 
     decision = {
-        "preset_name": "Human Master",
+        "preset_name": "Human Adaptive Master",
         "target_lufs": -10.5,
         "tighten_low_end": False,
         "tighten_low_end_strength": "medium",
@@ -33,9 +38,16 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         "deharsh_center_hz": 3500,
         "multiband_drive": "medium",
         "limiter_ceiling_dbtp": -1.0,
+        "vocal_presence_boost_db": 0.0,
+        "vocal_presence_hz": 2200,
+        "chorus_smooth_db": 0.0,
+        "chorus_smooth_hz": 4800,
+        "instrument_glue_db": 0.0,
         "actions": [],
         "notes": [],
         "genre": "general",
+        "arrangement_focus": arrangement_focus,
+        "arrangement_tags": arrangement_tags,
         "advanced_modules": {
             "dynamic_eq": True,
             "multiband_glue": True,
@@ -83,6 +95,30 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         decision["actions"].append("Recuperar pegada")
         decision["notes"].append("Se reforzó ataque percibido.")
 
+    if arrangement_focus == "vocal_led":
+        decision["vocal_presence_boost_db"] = 1.2 if vocal_presence < 0.30 else 0.6
+        decision["air_shelf_db"] = max(1.0, decision["air_shelf_db"])
+        decision["actions"].append("Enfoque humano vocal: inteligibilidad al frente sin romper musicalidad")
+    elif arrangement_focus == "instrumental_driven":
+        decision["instrument_glue_db"] = 0.8
+        decision["actions"].append("Enfoque instrumental: glue y cohesión de buses musicales")
+
+    if chorus_density > 0.62:
+        decision["chorus_smooth_db"] = 1.1
+        decision["use_deharsh"] = True
+        decision["deharsh_db"] = max(decision["deharsh_db"], 1.2)
+        decision["actions"].append("Control de coros: suavizado de presencia para evitar fatiga")
+
+    if "vocal_masking" in issues:
+        decision["low_mid_cut_db"] = max(decision["low_mid_cut_db"], 1.4)
+        decision["presence_boost_db"] = max(decision["presence_boost_db"], 0.8)
+        decision["actions"].append("Separación voz/instrumental en low-mid y presencia")
+
+    if "chorus_harshness" in issues:
+        decision["use_deharsh"] = True
+        decision["deharsh_db"] = max(decision["deharsh_db"], 1.8)
+        decision["actions"].append("Control de aspereza en coros densos")
+
     if decision["genre"] == "club_or_dark_mix":
         decision["target_lufs"] = -9.8
         decision["multiband_drive"] = "high"
@@ -91,19 +127,19 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         decision["multiband_drive"] = "low"
 
     if mode == "assistant_punch":
-        decision["preset_name"] = "Assistant Punch"
+        decision["preset_name"] = "Human Adaptive Master • Punch Bias"
         decision["target_lufs"] = -9.5
         decision["multiband_drive"] = "high"
         decision["boost_transients"] = True
         decision["actions"].append("Modo punch: impacto y loudness competitivo")
     elif mode == "assistant_warm":
-        decision["preset_name"] = "Assistant Warm"
+        decision["preset_name"] = "Human Adaptive Master • Warm Bias"
         decision["air_shelf_db"] = max(0.4, decision["air_shelf_db"] - 0.5)
         decision["presence_boost_db"] = max(0.3, decision["presence_boost_db"] - 0.4)
         decision["target_lufs"] = -11.2
         decision["actions"].append("Modo warm: suavidad armónica y densidad musical")
     elif mode == "assistant_open":
-        decision["preset_name"] = "Assistant Open"
+        decision["preset_name"] = "Human Adaptive Master • Open Bias"
         decision["air_shelf_db"] = max(1.2, decision["air_shelf_db"])
         decision["use_exciter"] = True
         decision["exciter_band"] = "high_only"

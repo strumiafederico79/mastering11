@@ -25,6 +25,14 @@ body{
 
 .studio-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:20px;align-items:start}
 .panel{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.panel{position:relative;overflow:hidden}
+.panel::before{
+  content:"";
+  position:absolute;inset:-1px;
+  background:linear-gradient(135deg,rgba(112,240,208,.18),rgba(78,161,255,.09),transparent 45%);
+  pointer-events:none;
+}
+.panel > *{position:relative;z-index:1}
 .panel h2{margin:0 0 18px;font-size:28px;letter-spacing:-.02em}
 
 .control-group{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
@@ -43,6 +51,7 @@ input[type=range]{padding:0;height:36px;accent-color:var(--accent)}
 button{width:100%;padding:15px;border:0;border-radius:14px;cursor:pointer;background:linear-gradient(180deg,var(--accent),#2e65d9);color:#f4f9ff;font-weight:700;font-size:17px;box-shadow:0 12px 30px rgba(78,161,255,.28);transition:.2s transform,.2s opacity}
 button:hover{transform:translateY(-1px)}
 button:disabled{opacity:.65;cursor:not-allowed}
+button{letter-spacing:.02em}
 
 .wave-card{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#08101b}
 .wave-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:14px;color:var(--muted)}

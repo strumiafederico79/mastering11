@@ -65,6 +65,23 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append("acompressor=threshold=0.11:ratio=1.5:attack=6:release=110:makeup=0.3")
         actions.append({"stage": "multiband_glue", "profile": "transparent"})
 
+    vocal_presence_boost_db = float(decision.get("vocal_presence_boost_db", 0.0))
+    if vocal_presence_boost_db > 0:
+        hz = int(decision.get("vocal_presence_hz", 2200))
+        filters.append(f"equalizer=f={hz}:t=q:w=1.0:g={_db(vocal_presence_boost_db)}")
+        actions.append({"stage": "vocal_focus", "db": vocal_presence_boost_db, "hz": hz})
+
+    chorus_smooth_db = float(decision.get("chorus_smooth_db", 0.0))
+    if chorus_smooth_db > 0:
+        hz = int(decision.get("chorus_smooth_hz", 4800))
+        filters.append(f"equalizer=f={hz}:t=q:w=1.1:g=-{_db(chorus_smooth_db)}")
+        actions.append({"stage": "chorus_smooth", "db": -chorus_smooth_db, "hz": hz})
+
+    instrument_glue_db = float(decision.get("instrument_glue_db", 0.0))
+    if instrument_glue_db > 0:
+        filters.append(f"volume={_db(instrument_glue_db)}dB")
+        actions.append({"stage": "instrument_glue", "db": instrument_glue_db})
+
     if modules.get("stereo_imager", True) and decision.get("widen_stereo", True):
         actions.append({
             "stage": "stereo_imager",

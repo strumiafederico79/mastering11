@@ -20,6 +20,7 @@ const els = {
   confidence: document.getElementById('confidence'),
   issues: document.getElementById('issues'),
   advancedPlan: document.getElementById('advancedPlan'),
+  arrangementTags: document.getElementById('arrangementTags'),
   actions: document.getElementById('actions'),
   analysisBox: document.getElementById('analysisBox'),
   decisionBox: document.getElementById('decisionBox'),
@@ -111,6 +112,15 @@ function renderActions(chain, decision) {
   }
 }
 
+function renderArrangementTags(tags) {
+  els.arrangementTags.innerHTML = '';
+  (tags || []).forEach((tag) => {
+    const li = document.createElement('li');
+    li.textContent = tag;
+    els.arrangementTags.appendChild(li);
+  });
+}
+
 function setMeter(fillEl, valueEl, percent, label) {
   fillEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   valueEl.textContent = label;
@@ -176,8 +186,11 @@ function buildAdvancedPlan(data, localStats) {
   const referenceLoaded = Boolean(els.referenceFile.files[0]);
 
   const plan = [];
-  plan.push(`Assistant mode ${mode}/${genre}: curva tonal adaptativa y control dinámico inteligente.`);
+  plan.push(`Human adaptive mode ${mode}/${genre}: decisión guiada por contexto musical real.`);
   plan.push(`Target final: ${targetLufs} LUFS con limitación transparente y control true-peak preventivo.`);
+  if (data.analysis?.arrangement_focus) {
+    plan.push(`Arreglo detectado: ${data.analysis.arrangement_focus} con tratamiento específico para voz/instrumentos/coros.`);
+  }
 
   if (localStats) {
     if (localStats.crestDb > 14) {
@@ -279,6 +292,7 @@ async function pollJob(jobId, localStats) {
     renderIssues(data.issues || []);
     renderActions(data.chain || {}, data.decision || {});
     renderAdvancedPlan(buildAdvancedPlan(data, localStats));
+    renderArrangementTags(data.analysis?.arrangement_tags || data.decision?.arrangement_tags || []);
 
     const confidence = estimateConfidence((data.issues || []).length, els.intensity.value);
     els.confidence.textContent = `${confidence}%`;
