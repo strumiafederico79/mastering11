@@ -1,4 +1,9 @@
 let wave = null;
+let previewCtx = null;
+let previewAudioObjectUrl = null;
+let previewElementSource = null;
+let previewGraphNodes = [];
+let previewRunning = false;
 
 const els = {
   file: document.getElementById('file'),
@@ -6,6 +11,8 @@ const els = {
   assistantMode: document.getElementById('assistantMode'),
   genrePreset: document.getElementById('genrePreset'),
   targetLufs: document.getElementById('targetLufs'),
+  stemMode: document.getElementById('stemMode'),
+  deliveryTarget: document.getElementById('deliveryTarget'),
   intensity: document.getElementById('intensity'),
   modDynamicEq: document.getElementById('modDynamicEq'),
   modMultibandGlue: document.getElementById('modMultibandGlue'),
@@ -13,6 +20,69 @@ const els = {
   modExciter: document.getElementById('modExciter'),
   modTransient: document.getElementById('modTransient'),
   modLimiter: document.getElementById('modLimiter'),
+  modPreviewEq: document.getElementById('modPreviewEq'),
+  modParallelMix: document.getElementById('modParallelMix'),
+  fxAbMatch: document.getElementById('fxAbMatch'),
+  fxSectionTp: document.getElementById('fxSectionTp'),
+  fxAiStem: document.getElementById('fxAiStem'),
+  fxHumanNotes: document.getElementById('fxHumanNotes'),
+  fxDeesser: document.getElementById('fxDeesser'),
+  fxPhaseFix: document.getElementById('fxPhaseFix'),
+  fxResonance: document.getElementById('fxResonance'),
+  fxDither: document.getElementById('fxDither'),
+  fxVocalPriority: document.getElementById('fxVocalPriority'),
+  fxSmartLimiter: document.getElementById('fxSmartLimiter'),
+  fxLoudnessRadar: document.getElementById('fxLoudnessRadar'),
+  fxBassNoteControl: document.getElementById('fxBassNoteControl'),
+  fxMsSculptor: document.getElementById('fxMsSculptor'),
+  fxQaPreflight: document.getElementById('fxQaPreflight'),
+  pDynamicEq: document.getElementById('pDynamicEq'),
+  pDynamicEqVal: document.getElementById('pDynamicEqVal'),
+  pDynamicEqFreq: document.getElementById('pDynamicEqFreq'),
+  pDynamicEqFreqVal: document.getElementById('pDynamicEqFreqVal'),
+  pDynamicEqQ: document.getElementById('pDynamicEqQ'),
+  pDynamicEqQVal: document.getElementById('pDynamicEqQVal'),
+  pMultibandGlue: document.getElementById('pMultibandGlue'),
+  pMultibandGlueVal: document.getElementById('pMultibandGlueVal'),
+  pMultibandAttack: document.getElementById('pMultibandAttack'),
+  pMultibandAttackVal: document.getElementById('pMultibandAttackVal'),
+  pMultibandRelease: document.getElementById('pMultibandRelease'),
+  pMultibandReleaseVal: document.getElementById('pMultibandReleaseVal'),
+  pStereoWidth: document.getElementById('pStereoWidth'),
+  pStereoWidthVal: document.getElementById('pStereoWidthVal'),
+  pStereoPan: document.getElementById('pStereoPan'),
+  pStereoPanVal: document.getElementById('pStereoPanVal'),
+  pExciterDrive: document.getElementById('pExciterDrive'),
+  pExciterDriveVal: document.getElementById('pExciterDriveVal'),
+  pExciterTone: document.getElementById('pExciterTone'),
+  pExciterToneVal: document.getElementById('pExciterToneVal'),
+  pTransientAmount: document.getElementById('pTransientAmount'),
+  pTransientAmountVal: document.getElementById('pTransientAmountVal'),
+  pTransientMix: document.getElementById('pTransientMix'),
+  pTransientMixVal: document.getElementById('pTransientMixVal'),
+  pLimiterCeiling: document.getElementById('pLimiterCeiling'),
+  pLimiterCeilingVal: document.getElementById('pLimiterCeilingVal'),
+  pLimiterRelease: document.getElementById('pLimiterRelease'),
+  pLimiterReleaseVal: document.getElementById('pLimiterReleaseVal'),
+  pParallelMix: document.getElementById('pParallelMix'),
+  pParallelMixVal: document.getElementById('pParallelMixVal'),
+  pOutputGain: document.getElementById('pOutputGain'),
+  pOutputGainVal: document.getElementById('pOutputGainVal'),
+  eqLow: document.getElementById('eqLow'),
+  eqLowVal: document.getElementById('eqLowVal'),
+  eqLowMid: document.getElementById('eqLowMid'),
+  eqLowMidVal: document.getElementById('eqLowMidVal'),
+  eqMid: document.getElementById('eqMid'),
+  eqMidVal: document.getElementById('eqMidVal'),
+  eqHighMid: document.getElementById('eqHighMid'),
+  eqHighMidVal: document.getElementById('eqHighMidVal'),
+  eqHigh: document.getElementById('eqHigh'),
+  eqHighVal: document.getElementById('eqHighVal'),
+  previewMode: document.getElementById('previewMode'),
+  livePlayBtn: document.getElementById('livePlayBtn'),
+  livePauseBtn: document.getElementById('livePauseBtn'),
+  liveStopBtn: document.getElementById('liveStopBtn'),
+  livePreviewAudio: document.getElementById('livePreviewAudio'),
   btn: document.getElementById('masterBtn'),
   profile: document.getElementById('profile'),
   state: document.getElementById('state'),
@@ -22,6 +92,7 @@ const els = {
   advancedPlan: document.getElementById('advancedPlan'),
   arrangementTags: document.getElementById('arrangementTags'),
   sectionMap: document.getElementById('sectionMap'),
+  loudnessRadar: document.getElementById('loudnessRadar'),
   humanNote: document.getElementById('humanNote'),
   actions: document.getElementById('actions'),
   analysisBox: document.getElementById('analysisBox'),
@@ -32,6 +103,13 @@ const els = {
   downloads: document.getElementById('downloads'),
   downloadWav: document.getElementById('downloadWav'),
   downloadMp3: document.getElementById('downloadMp3'),
+  downloadAcapellaWav: document.getElementById('downloadAcapellaWav'),
+  downloadAcapellaMp3: document.getElementById('downloadAcapellaMp3'),
+  downloadInstrumentalWav: document.getElementById('downloadInstrumentalWav'),
+  downloadInstrumentalMp3: document.getElementById('downloadInstrumentalMp3'),
+  downloadDrumsMp3: document.getElementById('downloadDrumsMp3'),
+  downloadBassMp3: document.getElementById('downloadBassMp3'),
+  downloadOtherMp3: document.getElementById('downloadOtherMp3'),
   meterDynamics: document.getElementById('meterDynamics'),
   meterStereo: document.getElementById('meterStereo'),
   meterTone: document.getElementById('meterTone'),
@@ -48,22 +126,29 @@ const els = {
   sorts: document.querySelectorAll('.sort'),
 };
 
+function setText(el, value) {
+  if (el) el.textContent = value;
+}
+
 function setSteps(progress, status) {
-  [els.stepQueued, els.stepAnalyze, els.stepProcess, els.stepExport, els.stepDone].forEach(x => x.classList.remove('active'));
-  if (progress >= 0) els.stepQueued.classList.add('active');
-  if (progress >= 14) els.stepAnalyze.classList.add('active');
-  if (progress >= 44) els.stepProcess.classList.add('active');
-  if (progress >= 74) els.stepExport.classList.add('active');
-  if (status === 'done') els.stepDone.classList.add('active');
+  [els.stepQueued, els.stepAnalyze, els.stepProcess, els.stepExport, els.stepDone]
+    .filter(Boolean)
+    .forEach(x => x.classList.remove('active'));
+  if (progress >= 0) els.stepQueued?.classList.add('active');
+  if (progress >= 14) els.stepAnalyze?.classList.add('active');
+  if (progress >= 44) els.stepProcess?.classList.add('active');
+  if (progress >= 74) els.stepExport?.classList.add('active');
+  if (status === 'done') els.stepDone?.classList.add('active');
 }
 
 function updateProgress(progress) {
   const normalized = Math.max(2, progress || 0);
-  els.progressBar.style.width = `${normalized}%`;
-  els.progressLabel.textContent = `${Math.round(normalized)}%`;
+  if (els.progressBar) els.progressBar.style.width = `${normalized}%`;
+  setText(els.progressLabel, `${Math.round(normalized)}%`);
 }
 
 function applyFilter(filterValue) {
+  if (!els.isotopeGrid) return;
   const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
   cards.forEach(card => {
     const group = card.dataset.group;
@@ -73,6 +158,7 @@ function applyFilter(filterValue) {
 }
 
 function applySort(sortType) {
+  if (!els.isotopeGrid) return;
   const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
   cards.sort((a, b) => {
     if (sortType === 'score') {
@@ -101,22 +187,288 @@ function initToolbar() {
   });
 }
 
+function initLivePluginControls() {
+  const controls = [
+    [els.pDynamicEq, els.pDynamicEqVal, 2],
+    [els.pDynamicEqFreq, els.pDynamicEqFreqVal, 0],
+    [els.pDynamicEqQ, els.pDynamicEqQVal, 2],
+    [els.pMultibandGlue, els.pMultibandGlueVal, 2],
+    [els.pMultibandAttack, els.pMultibandAttackVal, 3],
+    [els.pMultibandRelease, els.pMultibandReleaseVal, 3],
+    [els.pStereoWidth, els.pStereoWidthVal, 2],
+    [els.pStereoPan, els.pStereoPanVal, 2],
+    [els.pExciterDrive, els.pExciterDriveVal, 2],
+    [els.pExciterTone, els.pExciterToneVal, 0],
+    [els.pTransientAmount, els.pTransientAmountVal, 2],
+    [els.pTransientMix, els.pTransientMixVal, 2],
+    [els.pLimiterCeiling, els.pLimiterCeilingVal, 2],
+    [els.pLimiterRelease, els.pLimiterReleaseVal, 3],
+    [els.pParallelMix, els.pParallelMixVal, 2],
+    [els.pOutputGain, els.pOutputGainVal, 2],
+    [els.eqLow, els.eqLowVal, 1, ' dB'],
+    [els.eqLowMid, els.eqLowMidVal, 1, ' dB'],
+    [els.eqMid, els.eqMidVal, 1, ' dB'],
+    [els.eqHighMid, els.eqHighMidVal, 1, ' dB'],
+    [els.eqHigh, els.eqHighVal, 1, ' dB'],
+  ];
+  controls.forEach(([input, out, digits, suffix = '']) => {
+    if (!input || !out) return;
+    const refresh = () => { out.textContent = `${Number(input.value).toFixed(digits)}${suffix}`; };
+    input.addEventListener('input', refresh);
+    refresh();
+  });
+  const rebuildInputs = [
+    els.modDynamicEq, els.modMultibandGlue, els.modStereoImager, els.modExciter, els.modTransient, els.modLimiter, els.modPreviewEq, els.modParallelMix,
+    els.pDynamicEq, els.pDynamicEqFreq, els.pDynamicEqQ,
+    els.pMultibandGlue, els.pMultibandAttack, els.pMultibandRelease,
+    els.pStereoWidth, els.pStereoPan,
+    els.pExciterDrive, els.pExciterTone,
+    els.pTransientAmount, els.pTransientMix,
+    els.pLimiterCeiling, els.pLimiterRelease,
+    els.pParallelMix, els.pOutputGain,
+    els.eqLow, els.eqLowMid, els.eqMid, els.eqHighMid, els.eqHigh,
+    els.previewMode,
+  ];
+  rebuildInputs.forEach((el) => {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (previewRunning) restartPreview();
+    });
+    el.addEventListener('change', () => {
+      if (previewRunning) restartPreview();
+    });
+  });
+}
+
+function releasePreviewAudioUrl() {
+  if (previewAudioObjectUrl) {
+    URL.revokeObjectURL(previewAudioObjectUrl);
+    previewAudioObjectUrl = null;
+  }
+}
+
+async function ensurePreviewMediaReady() {
+  const file = els.file?.files?.[0];
+  if (!file) throw new Error('Selecciona un archivo para preview.');
+  if (!previewCtx) previewCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!els.livePreviewAudio) throw new Error('No se encontró el reproductor de preview.');
+
+  if (!previewAudioObjectUrl || els.livePreviewAudio.dataset.fileName !== file.name || Number(els.livePreviewAudio.dataset.fileSize || 0) !== file.size) {
+    releasePreviewAudioUrl();
+    previewAudioObjectUrl = URL.createObjectURL(file);
+    els.livePreviewAudio.src = previewAudioObjectUrl;
+    els.livePreviewAudio.dataset.fileName = file.name;
+    els.livePreviewAudio.dataset.fileSize = String(file.size);
+  }
+
+  if (!previewElementSource) previewElementSource = previewCtx.createMediaElementSource(els.livePreviewAudio);
+}
+
+function teardownPreviewGraph() {
+  previewGraphNodes.forEach((node) => {
+    try { node.disconnect(); } catch (_) {}
+  });
+  previewGraphNodes = [];
+  if (previewElementSource) {
+    try { previewElementSource.disconnect(); } catch (_) {}
+  }
+}
+
+function applyPreviewMode(node) {
+  const mode = els.previewMode?.value || 'full_mix';
+  if (!previewCtx || mode === 'full_mix') return node;
+
+  const splitter = previewCtx.createChannelSplitter(2);
+  const merger = previewCtx.createChannelMerger(2);
+  node.connect(splitter);
+
+  const connectMix = (inChannel, outChannel, gainValue) => {
+    const gain = previewCtx.createGain();
+    gain.gain.value = gainValue;
+    splitter.connect(gain, inChannel);
+    gain.connect(merger, 0, outChannel);
+    previewGraphNodes.push(gain);
+  };
+
+  if (mode === 'vocals_only') {
+    connectMix(0, 0, 0.5);
+    connectMix(1, 0, 0.5);
+    connectMix(0, 1, 0.5);
+    connectMix(1, 1, 0.5);
+  } else if (mode === 'instrumental_only') {
+    connectMix(0, 0, 1.0);
+    connectMix(1, 0, -1.0);
+    connectMix(0, 1, -1.0);
+    connectMix(1, 1, 1.0);
+  }
+
+  previewGraphNodes.push(splitter, merger);
+  return merger;
+}
+
+function buildPreviewChain(source) {
+  let node = applyPreviewMode(source);
+  const dryNode = node;
+
+  if (els.modDynamicEq?.checked) {
+    const eq = previewCtx.createBiquadFilter();
+    eq.type = 'peaking';
+    eq.frequency.value = Number(els.pDynamicEqFreq?.value || 280);
+    eq.Q.value = Number(els.pDynamicEqQ?.value || 1.0);
+    eq.gain.value = (Number(els.pDynamicEq?.value || 1) - 1) * -6;
+    node.connect(eq);
+    node = eq;
+  }
+
+  if (els.modMultibandGlue?.checked) {
+    const comp = previewCtx.createDynamicsCompressor();
+    comp.threshold.value = -24 + (Number(els.pMultibandGlue?.value || 1) * -4);
+    comp.ratio.value = 1.4 + (Number(els.pMultibandGlue?.value || 1) * 0.8);
+    comp.attack.value = Number(els.pMultibandAttack?.value || 0.01);
+    comp.release.value = Number(els.pMultibandRelease?.value || 0.2);
+    node.connect(comp);
+    node = comp;
+  }
+
+  if (els.modStereoImager?.checked) {
+    const pan = previewCtx.createStereoPanner();
+    const widthPan = Number(els.pStereoWidth?.value || 0.1) * 1.5;
+    pan.pan.value = Math.max(-1, Math.min(1, widthPan + Number(els.pStereoPan?.value || 0)));
+    node.connect(pan);
+    node = pan;
+  }
+
+  if (els.modPreviewEq?.checked) {
+    const eqBands = [
+      ['lowshelf', 80, Number(els.eqLow?.value || 0)],
+      ['peaking', 250, Number(els.eqLowMid?.value || 0)],
+      ['peaking', 1000, Number(els.eqMid?.value || 0)],
+      ['peaking', 4000, Number(els.eqHighMid?.value || 0)],
+      ['highshelf', 10000, Number(els.eqHigh?.value || 0)],
+    ];
+    eqBands.forEach(([type, frequency, gain]) => {
+      if (Math.abs(gain) < 0.05) return;
+      const eq = previewCtx.createBiquadFilter();
+      eq.type = type;
+      eq.frequency.value = frequency;
+      eq.Q.value = type === 'peaking' ? 0.85 : 0.7;
+      eq.gain.value = gain;
+      node.connect(eq);
+      node = eq;
+    });
+  }
+
+  if (els.modExciter?.checked) {
+    const exciter = previewCtx.createBiquadFilter();
+    exciter.type = 'highshelf';
+    exciter.frequency.value = Number(els.pExciterTone?.value || 6000);
+    exciter.gain.value = Number(els.pExciterDrive?.value || 8) * 0.6;
+    node.connect(exciter);
+    node = exciter;
+  }
+
+  if (els.modTransient?.checked) {
+    const transient = previewCtx.createDynamicsCompressor();
+    transient.threshold.value = -18 + ((1 - Number(els.pTransientAmount?.value || 0.95)) * 50);
+    transient.ratio.value = 2 + ((1 - Number(els.pTransientAmount?.value || 0.95)) * 8);
+    transient.attack.value = 0.001;
+    transient.release.value = 0.05;
+    node.connect(transient);
+    node = transient;
+  }
+
+  if (els.modLimiter?.checked) {
+    const lim = previewCtx.createDynamicsCompressor();
+    lim.threshold.value = Number(els.pLimiterCeiling?.value || -1) - 1.5;
+    lim.ratio.value = 20;
+    lim.attack.value = 0.003;
+    lim.release.value = Number(els.pLimiterRelease?.value || 0.08);
+    node.connect(lim);
+    node = lim;
+  }
+
+  if (els.modParallelMix?.checked) {
+    const dryGain = previewCtx.createGain();
+    const wetGain = previewCtx.createGain();
+    const mixOut = previewCtx.createGain();
+    const wetMix = Math.max(0, Math.min(1, Number(els.pParallelMix?.value || 1)));
+    dryGain.gain.value = 1 - wetMix;
+    wetGain.gain.value = wetMix * Number(els.pTransientMix?.value || 1);
+    dryNode.connect(dryGain);
+    node.connect(wetGain);
+    dryGain.connect(mixOut);
+    wetGain.connect(mixOut);
+    node = mixOut;
+    previewGraphNodes.push(dryGain, wetGain, mixOut);
+  }
+
+  const outGain = previewCtx.createGain();
+  outGain.gain.value = 10 ** (Number(els.pOutputGain?.value || 0) / 20);
+  node.connect(outGain);
+  node = outGain;
+
+  previewGraphNodes.push(node);
+  return node;
+}
+
+async function restartPreview() {
+  try {
+    if (!previewElementSource) return;
+    teardownPreviewGraph();
+    const tail = buildPreviewChain(previewElementSource);
+    tail.connect(previewCtx.destination);
+  } catch (err) {
+    setText(els.statusText, `Preview: ${err.message}`);
+  }
+}
+
+function stopPreview() {
+  if (els.livePreviewAudio) {
+    els.livePreviewAudio.pause();
+    els.livePreviewAudio.currentTime = 0;
+  }
+  previewRunning = false;
+}
+
+async function playPreview() {
+  await ensurePreviewMediaReady();
+  await restartPreview();
+  if (previewCtx.state === 'suspended') await previewCtx.resume();
+  await els.livePreviewAudio.play();
+  previewRunning = true;
+}
+
+async function pausePreview() {
+  if (!els.livePreviewAudio) return;
+  els.livePreviewAudio.pause();
+  previewRunning = false;
+  if (previewCtx?.state === 'running') await previewCtx.suspend();
+}
+
+async function handleLivePlay() {
+  try {
+    await playPreview();
+  } catch (err) {
+    setText(els.statusText, `Preview: ${err.message}`);
+  }
+}
+
 async function refreshPluginInfo() {
   try {
     const res = await fetch('/api/plugins');
     const data = await res.json();
-    if (data.ladspa_filter) els.pluginBackend.textContent = 'ladspa/native';
-    else if (data.lv2_filter) els.pluginBackend.textContent = 'lv2/native';
-    else els.pluginBackend.textContent = 'native';
+    if (data.ladspa_filter) setText(els.pluginBackend, 'ladspa/native');
+    else if (data.lv2_filter) setText(els.pluginBackend, 'lv2/native');
+    else setText(els.pluginBackend, 'native');
 
     const modules = Object.entries(data.advanced_modules || {})
       .filter(([, enabled]) => Boolean(enabled))
       .map(([name]) => name);
     if (modules.length) {
-      els.statusText.textContent = `Módulos disponibles: ${modules.slice(0, 3).join(', ')}${modules.length > 3 ? '...' : ''}`;
+      setText(els.statusText, `Módulos disponibles: ${modules.slice(0, 3).join(', ')}${modules.length > 3 ? '...' : ''}`);
     }
   } catch (_) {
-    els.pluginBackend.textContent = 'native';
+    setText(els.pluginBackend, 'native');
   }
 }
 
@@ -136,6 +488,7 @@ function renderWave(file) {
 }
 
 function renderIssues(list) {
+  if (!els.issues) return;
   els.issues.innerHTML = '';
   (list || []).forEach(item => {
     const li = document.createElement('li');
@@ -145,6 +498,7 @@ function renderIssues(list) {
 }
 
 function renderActions(chain, decision) {
+  if (!els.actions) return;
   els.actions.innerHTML = '';
   const actions = chain?.actions || [];
   if (actions.length) {
@@ -163,6 +517,7 @@ function renderActions(chain, decision) {
 }
 
 function renderArrangementTags(tags) {
+  if (!els.arrangementTags) return;
   els.arrangementTags.innerHTML = '';
   (tags || []).forEach((tag) => {
     const li = document.createElement('li');
@@ -172,6 +527,7 @@ function renderArrangementTags(tags) {
 }
 
 function renderSectionMap(analysis) {
+  if (!els.sectionMap) return;
   const sections = analysis?.section_rms_db || [];
   if (!sections.length) {
     els.sectionMap.textContent = 'Sin datos de secciones.';
@@ -189,6 +545,23 @@ function renderSectionMap(analysis) {
   els.sectionMap.textContent = rows.join('\n');
 }
 
+function renderLoudnessRadar(analysis) {
+  if (!els.loudnessRadar) return;
+  const points = analysis?.loudness_radar || analysis?.section_rms_db || [];
+  if (!points.length) {
+    els.loudnessRadar.textContent = 'Sin datos de radar.';
+    return;
+  }
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const rows = points.map((v, i) => {
+    const norm = max === min ? 0.5 : (v - min) / (max - min);
+    const bars = '▮'.repeat(Math.max(1, Math.round(norm * 12)));
+    return `T${i + 1}: ${bars.padEnd(12, '·')} ${v.toFixed(1)} LU-ish`;
+  });
+  els.loudnessRadar.textContent = rows.join('\n');
+}
+
 function buildHumanNote(analysis, decision) {
   const focus = analysis?.arrangement_focus || 'balanced_mix';
   const tags = (analysis?.arrangement_tags || []).join(', ') || 'sin tags relevantes';
@@ -203,6 +576,7 @@ function buildHumanNote(analysis, decision) {
 }
 
 function setMeter(fillEl, valueEl, percent, label) {
+  if (!fillEl || !valueEl) return;
   fillEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   valueEl.textContent = label;
 }
@@ -262,6 +636,8 @@ async function analyzeLocalAudio(file) {
 function buildAdvancedPlan(data, localStats) {
   const genre = els.genrePreset.value;
   const targetLufs = Number(els.targetLufs.value);
+  const stemMode = els.stemMode?.value || 'full_mix';
+  const deliveryTarget = els.deliveryTarget?.value || 'streaming';
   const intensity = Number(els.intensity.value);
   const mode = els.assistantMode.value;
   const referenceLoaded = Boolean(els.referenceFile.files[0]);
@@ -269,6 +645,14 @@ function buildAdvancedPlan(data, localStats) {
   const plan = [];
   plan.push(`Human adaptive mode ${mode}/${genre}: decisión guiada por contexto musical real.`);
   plan.push(`Target final: ${targetLufs} LUFS con limitación transparente y control true-peak preventivo.`);
+  if (stemMode !== 'full_mix') {
+    plan.push(stemMode === 'vocals_only'
+      ? 'Stem mode activo: priorizar voz centrada para referencia vocal.'
+      : 'Stem mode activo: atenuar centro para versión instrumental rápida.');
+  }
+  if (deliveryTarget === 'cd_master') {
+    plan.push('Entrega CD: cadena extra de glue humano + loudness competitivo estilo disco físico.');
+  }
   if (data.analysis?.arrangement_focus) {
     plan.push(`Arreglo detectado: ${data.analysis.arrangement_focus} con tratamiento específico para voz/instrumentos/coros.`);
   }
@@ -298,6 +682,7 @@ function buildAdvancedPlan(data, localStats) {
 }
 
 function renderAdvancedPlan(items) {
+  if (!els.advancedPlan) return;
   els.advancedPlan.innerHTML = '';
   items.forEach((item) => {
     const li = document.createElement('li');
@@ -309,15 +694,15 @@ function renderAdvancedPlan(items) {
 async function uploadFile() {
   const file = els.file.files[0];
   if (!file) {
-    els.statusText.textContent = 'Selecciona un archivo primero.';
+    setText(els.statusText, 'Selecciona un archivo primero.');
     return;
   }
 
   renderWave(file);
   els.btn.disabled = true;
-  els.statusText.textContent = 'Analizando track localmente...';
-  els.downloads.classList.add('hidden');
-  els.progressBar.style.width = '3%';
+  setText(els.statusText, 'Analizando track localmente...');
+  els.downloads?.classList.add('hidden');
+  if (els.progressBar) els.progressBar.style.width = '3%';
 
   let localStats = null;
   try {
@@ -334,6 +719,8 @@ async function uploadFile() {
   form.append('mode', els.assistantMode.value);
   form.append('options_json', JSON.stringify({
     target_lufs: Number(els.targetLufs.value),
+    stem_mode: els.stemMode?.value || 'full_mix',
+    delivery_target: els.deliveryTarget?.value || 'streaming',
     intensity: Number(els.intensity.value),
     stereo_amount: Math.min(0.6, Math.max(0, Number(els.intensity.value) / 200)),
     reference_loaded: Boolean(els.referenceFile.files[0]),
@@ -345,18 +732,58 @@ async function uploadFile() {
       transient_shaper: els.modTransient.checked,
       true_peak_limiter: els.modLimiter.checked,
     },
+    plugin_params: {
+      dynamic_eq_amount: Number(els.pDynamicEq?.value || 1.0),
+      dynamic_eq_freq_hz: Number(els.pDynamicEqFreq?.value || 280),
+      dynamic_eq_q: Number(els.pDynamicEqQ?.value || 1.0),
+      multiband_glue_strength: Number(els.pMultibandGlue?.value || 1.0),
+      multiband_attack_s: Number(els.pMultibandAttack?.value || 0.01),
+      multiband_release_s: Number(els.pMultibandRelease?.value || 0.2),
+      stereo_width_amount: Number(els.pStereoWidth?.value || 0.10),
+      stereo_pan: Number(els.pStereoPan?.value || 0),
+      exciter_drive: Number(els.pExciterDrive?.value || 8.0),
+      exciter_tone_hz: Number(els.pExciterTone?.value || 6000),
+      transient_support: Number(els.pTransientAmount?.value || 0.95),
+      transient_mix: Number(els.pTransientMix?.value || 1.0),
+      limiter_ceiling_dbtp: Number(els.pLimiterCeiling?.value || -1.0),
+      limiter_release_s: Number(els.pLimiterRelease?.value || 0.08),
+      preview_parallel_mix: Number(els.pParallelMix?.value || 1.0),
+      output_gain_db: Number(els.pOutputGain?.value || 0),
+    },
+    feature_flags: {
+      ab_match: Boolean(els.fxAbMatch?.checked),
+      section_true_peak_guard: Boolean(els.fxSectionTp?.checked),
+      ai_stem_mastering: Boolean(els.fxAiStem?.checked),
+      advanced_human_notes: Boolean(els.fxHumanNotes?.checked),
+      dynamic_deesser: Boolean(els.fxDeesser?.checked),
+      phase_mono_fix: Boolean(els.fxPhaseFix?.checked),
+      resonance_hunter: Boolean(els.fxResonance?.checked),
+      dither_noise_shaping: Boolean(els.fxDither?.checked),
+      vocal_priority_sidechain: Boolean(els.fxVocalPriority?.checked),
+      smart_limiter_lookahead: Boolean(els.fxSmartLimiter?.checked),
+      loudness_radar: Boolean(els.fxLoudnessRadar?.checked),
+      bass_note_control: Boolean(els.fxBassNoteControl?.checked),
+      smart_ms_sculptor: Boolean(els.fxMsSculptor?.checked),
+      qa_preflight: Boolean(els.fxQaPreflight?.checked),
+    },
   }));
 
   try {
-    els.statusText.textContent = 'Subiendo al motor de mastering...';
+    setText(els.statusText, 'Subiendo al motor de mastering...');
     const res = await fetch('/api/jobs', { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     await pollJob(data.job_id, localStats);
   } catch (err) {
     console.error(err);
-    els.statusText.textContent = `Error al procesar: ${err.message}`;
+    setText(els.statusText, `Error al procesar: ${err.message}`);
   } finally {
+    stopPreview();
+    releasePreviewAudioUrl();
+    if (els.livePreviewAudio) {
+      els.livePreviewAudio.removeAttribute('src');
+      els.livePreviewAudio.load();
+    }
     els.btn.disabled = false;
   }
 }
@@ -366,30 +793,38 @@ async function pollJob(jobId, localStats) {
     const res = await fetch(`/api/jobs/${jobId}`);
     const data = await res.json();
 
-    els.state.textContent = data.status || '-';
-    els.profile.textContent = data.profile || 'Mastering Suite X';
-    els.analysisBox.textContent = JSON.stringify(data.analysis || {}, null, 2);
-    els.decisionBox.textContent = JSON.stringify(data.decision || {}, null, 2);
+    setText(els.state, data.status || '-');
+    setText(els.profile, data.profile || 'PGR Mastering');
+    setText(els.analysisBox, JSON.stringify(data.analysis || {}, null, 2));
+    setText(els.decisionBox, JSON.stringify(data.decision || {}, null, 2));
     renderIssues(data.issues || []);
     renderActions(data.chain || {}, data.decision || {});
     renderAdvancedPlan(buildAdvancedPlan(data, localStats));
     renderArrangementTags(data.analysis?.arrangement_tags || data.decision?.arrangement_tags || []);
     renderSectionMap(data.analysis || {});
-    els.humanNote.textContent = buildHumanNote(data.analysis || {}, data.decision || {});
+    renderLoudnessRadar(data.analysis || {});
+    setText(els.humanNote, buildHumanNote(data.analysis || {}, data.decision || {}));
 
     const confidence = estimateConfidence((data.issues || []).length, els.intensity.value);
-    els.confidence.textContent = `${confidence}%`;
+    setText(els.confidence, `${confidence}%`);
 
     const progress = Math.max(3, data.progress || 0);
-    els.progressBar.style.width = `${progress}%`;
-    els.statusText.textContent = data.message || 'Procesando...';
+    updateProgress(progress);
+    setText(els.statusText, data.message || 'Procesando...');
     setSteps(progress, data.status || 'queued');
 
     if (data.status === 'done') {
-      els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav`;
-      els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3`;
-      els.downloads.classList.remove('hidden');
-      els.statusText.textContent = 'Master listo. Descarga disponible.';
+      if (els.downloadWav) els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=master`;
+      if (els.downloadMp3) els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=master`;
+      if (els.downloadAcapellaWav) els.downloadAcapellaWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=acapella`;
+      if (els.downloadAcapellaMp3) els.downloadAcapellaMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=acapella`;
+      if (els.downloadInstrumentalWav) els.downloadInstrumentalWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=instrumental`;
+      if (els.downloadInstrumentalMp3) els.downloadInstrumentalMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=instrumental`;
+      if (els.downloadDrumsMp3) els.downloadDrumsMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=drums`;
+      if (els.downloadBassMp3) els.downloadBassMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=bass`;
+      if (els.downloadOtherMp3) els.downloadOtherMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=other`;
+      els.downloads?.classList.remove('hidden');
+      setText(els.statusText, 'Master listo. Descarga disponible.');
       return;
     }
     if (data.status === 'error') {
@@ -400,6 +835,21 @@ async function pollJob(jobId, localStats) {
   throw new Error('Timeout esperando el job.');
 }
 
-els.btn.addEventListener('click', uploadFile);
+els.btn?.addEventListener('click', uploadFile);
+els.livePlayBtn?.addEventListener('click', handleLivePlay);
+els.livePauseBtn?.addEventListener('click', pausePreview);
+els.liveStopBtn?.addEventListener('click', stopPreview);
+els.livePreviewAudio?.addEventListener('play', async () => {
+  if (previewCtx?.state === 'suspended') await previewCtx.resume();
+  await restartPreview();
+  previewRunning = true;
+});
+els.livePreviewAudio?.addEventListener('pause', () => {
+  previewRunning = false;
+});
+els.livePreviewAudio?.addEventListener('ended', () => {
+  previewRunning = false;
+});
 initToolbar();
+initLivePluginControls();
 refreshPluginInfo();
