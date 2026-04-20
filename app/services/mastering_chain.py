@@ -101,10 +101,6 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append("acompressor=threshold=0.16:ratio=1.15:attack=40:release=280:makeup=1")
         actions.append({"stage": "human_glue", "profile": "bus_like"})
 
-    if decision.get("human_glue_stage", False):
-        filters.append("acompressor=threshold=0.16:ratio=1.15:attack=40:release=280:makeup=1")
-        actions.append({"stage": "human_glue", "profile": "bus_like"})
-
     vocal_presence_boost_db = float(decision.get("vocal_presence_boost_db", 0.0))
     if vocal_presence_boost_db > 0:
         hz = int(decision.get("vocal_presence_hz", 2200))
