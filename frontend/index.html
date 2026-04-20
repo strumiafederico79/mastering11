@@ -139,7 +139,22 @@
             <span>Waveform Preview</span>
             <strong id="statusText">Esperando archivo...</strong>
           </div>
-          <button id="livePreviewBtn" type="button">🎧 Preview en vivo</button>
+          <div class="assistant-grid">
+            <div class="control-group">
+              <label for="previewMode">Preview mode</label>
+              <select id="previewMode">
+                <option value="full_mix" selected>Mix completo</option>
+                <option value="vocals_only">Solo voz (aprox)</option>
+                <option value="instrumental_only">Solo instrumental (aprox)</option>
+              </select>
+            </div>
+          </div>
+          <div class="module-grid">
+            <button id="livePlayBtn" type="button">▶ Play</button>
+            <button id="livePauseBtn" type="button">⏸ Pause</button>
+            <button id="liveStopBtn" type="button">⏹ Stop</button>
+          </div>
+          <audio id="livePreviewAudio" controls preload="none"></audio>
           <div id="waveform"></div>
         </div>
 

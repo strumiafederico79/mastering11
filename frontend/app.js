@@ -1,7 +1,8 @@
 let wave = null;
 let previewCtx = null;
-let previewBuffer = null;
-let previewSource = null;
+let previewAudioObjectUrl = null;
+let previewElementSource = null;
+let previewGraphNodes = [];
 let previewRunning = false;
 
 const els = {
@@ -45,7 +46,11 @@ const els = {
   pTransientAmountVal: document.getElementById('pTransientAmountVal'),
   pLimiterCeiling: document.getElementById('pLimiterCeiling'),
   pLimiterCeilingVal: document.getElementById('pLimiterCeilingVal'),
-  livePreviewBtn: document.getElementById('livePreviewBtn'),
+  previewMode: document.getElementById('previewMode'),
+  livePlayBtn: document.getElementById('livePlayBtn'),
+  livePauseBtn: document.getElementById('livePauseBtn'),
+  liveStopBtn: document.getElementById('liveStopBtn'),
+  livePreviewAudio: document.getElementById('livePreviewAudio'),
   btn: document.getElementById('masterBtn'),
   profile: document.getElementById('profile'),
   state: document.getElementById('state'),
@@ -168,6 +173,7 @@ function initLivePluginControls() {
   const rebuildInputs = [
     els.modDynamicEq, els.modMultibandGlue, els.modStereoImager, els.modExciter, els.modTransient, els.modLimiter,
     els.pDynamicEq, els.pMultibandGlue, els.pStereoWidth, els.pExciterDrive, els.pTransientAmount, els.pLimiterCeiling,
+    els.previewMode,
   ];
   rebuildInputs.forEach((el) => {
     if (!el) return;
@@ -180,29 +186,74 @@ function initLivePluginControls() {
   });
 }
 
-async function ensurePreviewBuffer() {
+function releasePreviewAudioUrl() {
+  if (previewAudioObjectUrl) {
+    URL.revokeObjectURL(previewAudioObjectUrl);
+    previewAudioObjectUrl = null;
+  }
+}
+
+async function ensurePreviewMediaReady() {
   const file = els.file?.files?.[0];
   if (!file) throw new Error('Selecciona un archivo para preview.');
   if (!previewCtx) previewCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (!previewBuffer) {
-    const arr = await file.arrayBuffer();
-    previewBuffer = await previewCtx.decodeAudioData(arr);
+  if (!els.livePreviewAudio) throw new Error('No se encontró el reproductor de preview.');
+
+  if (!previewAudioObjectUrl || els.livePreviewAudio.dataset.fileName !== file.name || Number(els.livePreviewAudio.dataset.fileSize || 0) !== file.size) {
+    releasePreviewAudioUrl();
+    previewAudioObjectUrl = URL.createObjectURL(file);
+    els.livePreviewAudio.src = previewAudioObjectUrl;
+    els.livePreviewAudio.dataset.fileName = file.name;
+    els.livePreviewAudio.dataset.fileSize = String(file.size);
+  }
+
+  if (!previewElementSource) previewElementSource = previewCtx.createMediaElementSource(els.livePreviewAudio);
+}
+
+function teardownPreviewGraph() {
+  previewGraphNodes.forEach((node) => {
+    try { node.disconnect(); } catch (_) {}
+  });
+  previewGraphNodes = [];
+  if (previewElementSource) {
+    try { previewElementSource.disconnect(); } catch (_) {}
   }
 }
 
-function stopPreview() {
-  if (previewSource) {
-    try { previewSource.stop(); } catch (_) {}
-    previewSource.disconnect();
-    previewSource = null;
+function applyPreviewMode(node) {
+  const mode = els.previewMode?.value || 'full_mix';
+  if (!previewCtx || mode === 'full_mix') return node;
+
+  const splitter = previewCtx.createChannelSplitter(2);
+  const merger = previewCtx.createChannelMerger(2);
+  node.connect(splitter);
+
+  const connectMix = (inChannel, outChannel, gainValue) => {
+    const gain = previewCtx.createGain();
+    gain.gain.value = gainValue;
+    splitter.connect(gain, inChannel);
+    gain.connect(merger, 0, outChannel);
+    previewGraphNodes.push(gain);
+  };
+
+  if (mode === 'vocals_only') {
+    connectMix(0, 0, 0.5);
+    connectMix(1, 0, 0.5);
+    connectMix(0, 1, 0.5);
+    connectMix(1, 1, 0.5);
+  } else if (mode === 'instrumental_only') {
+    connectMix(0, 0, 1.0);
+    connectMix(1, 0, -1.0);
+    connectMix(0, 1, -1.0);
+    connectMix(1, 1, 1.0);
   }
-  previewRunning = false;
-  if (els.livePreviewBtn) els.livePreviewBtn.textContent = '🎧 Preview en vivo';
+
+  previewGraphNodes.push(splitter, merger);
+  return merger;
 }
 
 function buildPreviewChain(source) {
-  let node = source;
-  const tail = [];
+  let node = applyPreviewMode(source);
 
   if (els.modDynamicEq?.checked) {
     const eq = previewCtx.createBiquadFilter();
@@ -241,38 +292,47 @@ function buildPreviewChain(source) {
     node = lim;
   }
 
-  tail.push(node);
-  return tail;
+  previewGraphNodes.push(node);
+  return node;
 }
 
 async function restartPreview() {
-  stopPreview();
-  await startPreview();
-}
-
-async function startPreview() {
-  await ensurePreviewBuffer();
-  if (previewCtx.state === 'suspended') await previewCtx.resume();
-  previewSource = previewCtx.createBufferSource();
-  previewSource.buffer = previewBuffer;
-  const tail = buildPreviewChain(previewSource);
-  tail[tail.length - 1].connect(previewCtx.destination);
-  previewSource.start(0);
-  previewRunning = true;
-  if (els.livePreviewBtn) els.livePreviewBtn.textContent = '⏹ Detener preview';
-  previewSource.onended = () => {
-    previewRunning = false;
-    if (els.livePreviewBtn) els.livePreviewBtn.textContent = '🎧 Preview en vivo';
-  };
-}
-
-async function toggleLivePreview() {
   try {
-    if (previewRunning) {
-      stopPreview();
-      return;
-    }
-    await startPreview();
+    if (!previewElementSource) return;
+    teardownPreviewGraph();
+    const tail = buildPreviewChain(previewElementSource);
+    tail.connect(previewCtx.destination);
+  } catch (err) {
+    setText(els.statusText, `Preview: ${err.message}`);
+  }
+}
+
+function stopPreview() {
+  if (els.livePreviewAudio) {
+    els.livePreviewAudio.pause();
+    els.livePreviewAudio.currentTime = 0;
+  }
+  previewRunning = false;
+}
+
+async function playPreview() {
+  await ensurePreviewMediaReady();
+  await restartPreview();
+  if (previewCtx.state === 'suspended') await previewCtx.resume();
+  await els.livePreviewAudio.play();
+  previewRunning = true;
+}
+
+async function pausePreview() {
+  if (!els.livePreviewAudio) return;
+  els.livePreviewAudio.pause();
+  previewRunning = false;
+  if (previewCtx?.state === 'running') await previewCtx.suspend();
+}
+
+async function handleLivePlay() {
+  try {
+    await playPreview();
   } catch (err) {
     setText(els.statusText, `Preview: ${err.message}`);
   }
@@ -594,7 +654,11 @@ async function uploadFile() {
     setText(els.statusText, `Error al procesar: ${err.message}`);
   } finally {
     stopPreview();
-    previewBuffer = null;
+    releasePreviewAudioUrl();
+    if (els.livePreviewAudio) {
+      els.livePreviewAudio.removeAttribute('src');
+      els.livePreviewAudio.load();
+    }
     els.btn.disabled = false;
   }
 }
@@ -647,7 +711,20 @@ async function pollJob(jobId, localStats) {
 }
 
 els.btn?.addEventListener('click', uploadFile);
-els.livePreviewBtn?.addEventListener('click', toggleLivePreview);
+els.livePlayBtn?.addEventListener('click', handleLivePlay);
+els.livePauseBtn?.addEventListener('click', pausePreview);
+els.liveStopBtn?.addEventListener('click', stopPreview);
+els.livePreviewAudio?.addEventListener('play', async () => {
+  if (previewCtx?.state === 'suspended') await previewCtx.resume();
+  await restartPreview();
+  previewRunning = true;
+});
+els.livePreviewAudio?.addEventListener('pause', () => {
+  previewRunning = false;
+});
+els.livePreviewAudio?.addEventListener('ended', () => {
+  previewRunning = false;
+});
 initToolbar();
 initLivePluginControls();
 refreshPluginInfo();
