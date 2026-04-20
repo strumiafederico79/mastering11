@@ -132,6 +132,30 @@
           <input id="pLimiterCeiling" type="range" min="-2" max="-0.1" step="0.1" value="-1.0">
         </div>
 
+        <div class="section-title">Ecualizador integrado (tiempo real)</div>
+        <div class="assistant-grid">
+          <div class="control-group">
+            <label for="eqLow">Low 80Hz <strong id="eqLowVal">0.0 dB</strong></label>
+            <input id="eqLow" type="range" min="-12" max="12" step="0.1" value="0">
+          </div>
+          <div class="control-group">
+            <label for="eqLowMid">Low-Mid 250Hz <strong id="eqLowMidVal">0.0 dB</strong></label>
+            <input id="eqLowMid" type="range" min="-12" max="12" step="0.1" value="0">
+          </div>
+          <div class="control-group">
+            <label for="eqMid">Mid 1kHz <strong id="eqMidVal">0.0 dB</strong></label>
+            <input id="eqMid" type="range" min="-12" max="12" step="0.1" value="0">
+          </div>
+          <div class="control-group">
+            <label for="eqHighMid">High-Mid 4kHz <strong id="eqHighMidVal">0.0 dB</strong></label>
+            <input id="eqHighMid" type="range" min="-12" max="12" step="0.1" value="0">
+          </div>
+          <div class="control-group span-2">
+            <label for="eqHigh">High Shelf 10kHz <strong id="eqHighVal">0.0 dB</strong></label>
+            <input id="eqHigh" type="range" min="-12" max="12" step="0.1" value="0">
+          </div>
+        </div>
+
         <button id="masterBtn">Iniciar Mastering</button>
 
         <div class="wave-card">

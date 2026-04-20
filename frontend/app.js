@@ -46,6 +46,16 @@ const els = {
   pTransientAmountVal: document.getElementById('pTransientAmountVal'),
   pLimiterCeiling: document.getElementById('pLimiterCeiling'),
   pLimiterCeilingVal: document.getElementById('pLimiterCeilingVal'),
+  eqLow: document.getElementById('eqLow'),
+  eqLowVal: document.getElementById('eqLowVal'),
+  eqLowMid: document.getElementById('eqLowMid'),
+  eqLowMidVal: document.getElementById('eqLowMidVal'),
+  eqMid: document.getElementById('eqMid'),
+  eqMidVal: document.getElementById('eqMidVal'),
+  eqHighMid: document.getElementById('eqHighMid'),
+  eqHighMidVal: document.getElementById('eqHighMidVal'),
+  eqHigh: document.getElementById('eqHigh'),
+  eqHighVal: document.getElementById('eqHighVal'),
   previewMode: document.getElementById('previewMode'),
   livePlayBtn: document.getElementById('livePlayBtn'),
   livePauseBtn: document.getElementById('livePauseBtn'),
@@ -163,16 +173,22 @@ function initLivePluginControls() {
     [els.pExciterDrive, els.pExciterDriveVal, 2],
     [els.pTransientAmount, els.pTransientAmountVal, 2],
     [els.pLimiterCeiling, els.pLimiterCeilingVal, 2],
+    [els.eqLow, els.eqLowVal, 1, ' dB'],
+    [els.eqLowMid, els.eqLowMidVal, 1, ' dB'],
+    [els.eqMid, els.eqMidVal, 1, ' dB'],
+    [els.eqHighMid, els.eqHighMidVal, 1, ' dB'],
+    [els.eqHigh, els.eqHighVal, 1, ' dB'],
   ];
-  controls.forEach(([input, out, digits]) => {
+  controls.forEach(([input, out, digits, suffix = '']) => {
     if (!input || !out) return;
-    const refresh = () => { out.textContent = Number(input.value).toFixed(digits); };
+    const refresh = () => { out.textContent = `${Number(input.value).toFixed(digits)}${suffix}`; };
     input.addEventListener('input', refresh);
     refresh();
   });
   const rebuildInputs = [
     els.modDynamicEq, els.modMultibandGlue, els.modStereoImager, els.modExciter, els.modTransient, els.modLimiter,
     els.pDynamicEq, els.pMultibandGlue, els.pStereoWidth, els.pExciterDrive, els.pTransientAmount, els.pLimiterCeiling,
+    els.eqLow, els.eqLowMid, els.eqMid, els.eqHighMid, els.eqHigh,
     els.previewMode,
   ];
   rebuildInputs.forEach((el) => {
@@ -281,6 +297,24 @@ function buildPreviewChain(source) {
     node.connect(pan);
     node = pan;
   }
+
+  const eqBands = [
+    ['lowshelf', 80, Number(els.eqLow?.value || 0)],
+    ['peaking', 250, Number(els.eqLowMid?.value || 0)],
+    ['peaking', 1000, Number(els.eqMid?.value || 0)],
+    ['peaking', 4000, Number(els.eqHighMid?.value || 0)],
+    ['highshelf', 10000, Number(els.eqHigh?.value || 0)],
+  ];
+  eqBands.forEach(([type, frequency, gain]) => {
+    if (Math.abs(gain) < 0.05) return;
+    const eq = previewCtx.createBiquadFilter();
+    eq.type = type;
+    eq.frequency.value = frequency;
+    eq.Q.value = type === 'peaking' ? 0.85 : 0.7;
+    eq.gain.value = gain;
+    node.connect(eq);
+    node = eq;
+  });
 
   if (els.modLimiter?.checked) {
     const lim = previewCtx.createDynamicsCompressor();
