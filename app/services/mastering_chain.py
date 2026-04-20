@@ -3,6 +3,10 @@ from app.core.config import settings
 def _db(val: float) -> str:
     return f"{val:.2f}"
 
+def build_safe_filter_chain() -> str:
+    # Cadena de máxima compatibilidad para builds de ffmpeg limitadas.
+    return "highpass=f=25,acompressor=threshold=0.10:ratio=2.0:attack=20:release=180,alimiter=limit=0.98"
+
 def build_ffmpeg_filter_chain(decision: dict):
     filters = []
     actions = []
@@ -92,6 +96,10 @@ def build_ffmpeg_filter_chain(decision: dict):
         threshold = max(0.10, 0.18 - (glue_strength * 0.03))
         filters.append(f"acompressor=threshold={threshold:.2f}:ratio={ratio:.2f}:attack=14:release=180:makeup=1")
         actions.append({"stage": "multiband_glue", "profile": "transparent", "strength": glue_strength})
+
+    if decision.get("human_glue_stage", False):
+        filters.append("acompressor=threshold=0.16:ratio=1.15:attack=40:release=280:makeup=1")
+        actions.append({"stage": "human_glue", "profile": "bus_like"})
 
     if decision.get("human_glue_stage", False):
         filters.append("acompressor=threshold=0.16:ratio=1.15:attack=40:release=280:makeup=1")
