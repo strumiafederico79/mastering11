@@ -6,6 +6,8 @@ const els = {
   assistantMode: document.getElementById('assistantMode'),
   genrePreset: document.getElementById('genrePreset'),
   targetLufs: document.getElementById('targetLufs'),
+  stemMode: document.getElementById('stemMode'),
+  deliveryTarget: document.getElementById('deliveryTarget'),
   intensity: document.getElementById('intensity'),
   modDynamicEq: document.getElementById('modDynamicEq'),
   modMultibandGlue: document.getElementById('modMultibandGlue'),
@@ -13,6 +15,32 @@ const els = {
   modExciter: document.getElementById('modExciter'),
   modTransient: document.getElementById('modTransient'),
   modLimiter: document.getElementById('modLimiter'),
+  fxAbMatch: document.getElementById('fxAbMatch'),
+  fxSectionTp: document.getElementById('fxSectionTp'),
+  fxAiStem: document.getElementById('fxAiStem'),
+  fxHumanNotes: document.getElementById('fxHumanNotes'),
+  fxDeesser: document.getElementById('fxDeesser'),
+  fxPhaseFix: document.getElementById('fxPhaseFix'),
+  fxResonance: document.getElementById('fxResonance'),
+  fxDither: document.getElementById('fxDither'),
+  fxVocalPriority: document.getElementById('fxVocalPriority'),
+  fxSmartLimiter: document.getElementById('fxSmartLimiter'),
+  fxLoudnessRadar: document.getElementById('fxLoudnessRadar'),
+  fxBassNoteControl: document.getElementById('fxBassNoteControl'),
+  fxMsSculptor: document.getElementById('fxMsSculptor'),
+  fxQaPreflight: document.getElementById('fxQaPreflight'),
+  pDynamicEq: document.getElementById('pDynamicEq'),
+  pDynamicEqVal: document.getElementById('pDynamicEqVal'),
+  pMultibandGlue: document.getElementById('pMultibandGlue'),
+  pMultibandGlueVal: document.getElementById('pMultibandGlueVal'),
+  pStereoWidth: document.getElementById('pStereoWidth'),
+  pStereoWidthVal: document.getElementById('pStereoWidthVal'),
+  pExciterDrive: document.getElementById('pExciterDrive'),
+  pExciterDriveVal: document.getElementById('pExciterDriveVal'),
+  pTransientAmount: document.getElementById('pTransientAmount'),
+  pTransientAmountVal: document.getElementById('pTransientAmountVal'),
+  pLimiterCeiling: document.getElementById('pLimiterCeiling'),
+  pLimiterCeilingVal: document.getElementById('pLimiterCeilingVal'),
   btn: document.getElementById('masterBtn'),
   profile: document.getElementById('profile'),
   state: document.getElementById('state'),
@@ -22,6 +50,7 @@ const els = {
   advancedPlan: document.getElementById('advancedPlan'),
   arrangementTags: document.getElementById('arrangementTags'),
   sectionMap: document.getElementById('sectionMap'),
+  loudnessRadar: document.getElementById('loudnessRadar'),
   humanNote: document.getElementById('humanNote'),
   actions: document.getElementById('actions'),
   analysisBox: document.getElementById('analysisBox'),
@@ -32,6 +61,13 @@ const els = {
   downloads: document.getElementById('downloads'),
   downloadWav: document.getElementById('downloadWav'),
   downloadMp3: document.getElementById('downloadMp3'),
+  downloadAcapellaWav: document.getElementById('downloadAcapellaWav'),
+  downloadAcapellaMp3: document.getElementById('downloadAcapellaMp3'),
+  downloadInstrumentalWav: document.getElementById('downloadInstrumentalWav'),
+  downloadInstrumentalMp3: document.getElementById('downloadInstrumentalMp3'),
+  downloadDrumsMp3: document.getElementById('downloadDrumsMp3'),
+  downloadBassMp3: document.getElementById('downloadBassMp3'),
+  downloadOtherMp3: document.getElementById('downloadOtherMp3'),
   meterDynamics: document.getElementById('meterDynamics'),
   meterStereo: document.getElementById('meterStereo'),
   meterTone: document.getElementById('meterTone'),
@@ -48,22 +84,29 @@ const els = {
   sorts: document.querySelectorAll('.sort'),
 };
 
+function setText(el, value) {
+  if (el) el.textContent = value;
+}
+
 function setSteps(progress, status) {
-  [els.stepQueued, els.stepAnalyze, els.stepProcess, els.stepExport, els.stepDone].forEach(x => x.classList.remove('active'));
-  if (progress >= 0) els.stepQueued.classList.add('active');
-  if (progress >= 14) els.stepAnalyze.classList.add('active');
-  if (progress >= 44) els.stepProcess.classList.add('active');
-  if (progress >= 74) els.stepExport.classList.add('active');
-  if (status === 'done') els.stepDone.classList.add('active');
+  [els.stepQueued, els.stepAnalyze, els.stepProcess, els.stepExport, els.stepDone]
+    .filter(Boolean)
+    .forEach(x => x.classList.remove('active'));
+  if (progress >= 0) els.stepQueued?.classList.add('active');
+  if (progress >= 14) els.stepAnalyze?.classList.add('active');
+  if (progress >= 44) els.stepProcess?.classList.add('active');
+  if (progress >= 74) els.stepExport?.classList.add('active');
+  if (status === 'done') els.stepDone?.classList.add('active');
 }
 
 function updateProgress(progress) {
   const normalized = Math.max(2, progress || 0);
-  els.progressBar.style.width = `${normalized}%`;
-  els.progressLabel.textContent = `${Math.round(normalized)}%`;
+  if (els.progressBar) els.progressBar.style.width = `${normalized}%`;
+  setText(els.progressLabel, `${Math.round(normalized)}%`);
 }
 
 function applyFilter(filterValue) {
+  if (!els.isotopeGrid) return;
   const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
   cards.forEach(card => {
     const group = card.dataset.group;
@@ -73,6 +116,7 @@ function applyFilter(filterValue) {
 }
 
 function applySort(sortType) {
+  if (!els.isotopeGrid) return;
   const cards = [...els.isotopeGrid.querySelectorAll('.iso-card')];
   cards.sort((a, b) => {
     if (sortType === 'score') {
@@ -101,22 +145,39 @@ function initToolbar() {
   });
 }
 
+function initLivePluginControls() {
+  const controls = [
+    [els.pDynamicEq, els.pDynamicEqVal, 2],
+    [els.pMultibandGlue, els.pMultibandGlueVal, 2],
+    [els.pStereoWidth, els.pStereoWidthVal, 2],
+    [els.pExciterDrive, els.pExciterDriveVal, 2],
+    [els.pTransientAmount, els.pTransientAmountVal, 2],
+    [els.pLimiterCeiling, els.pLimiterCeilingVal, 2],
+  ];
+  controls.forEach(([input, out, digits]) => {
+    if (!input || !out) return;
+    const refresh = () => { out.textContent = Number(input.value).toFixed(digits); };
+    input.addEventListener('input', refresh);
+    refresh();
+  });
+}
+
 async function refreshPluginInfo() {
   try {
     const res = await fetch('/api/plugins');
     const data = await res.json();
-    if (data.ladspa_filter) els.pluginBackend.textContent = 'ladspa/native';
-    else if (data.lv2_filter) els.pluginBackend.textContent = 'lv2/native';
-    else els.pluginBackend.textContent = 'native';
+    if (data.ladspa_filter) setText(els.pluginBackend, 'ladspa/native');
+    else if (data.lv2_filter) setText(els.pluginBackend, 'lv2/native');
+    else setText(els.pluginBackend, 'native');
 
     const modules = Object.entries(data.advanced_modules || {})
       .filter(([, enabled]) => Boolean(enabled))
       .map(([name]) => name);
     if (modules.length) {
-      els.statusText.textContent = `Módulos disponibles: ${modules.slice(0, 3).join(', ')}${modules.length > 3 ? '...' : ''}`;
+      setText(els.statusText, `Módulos disponibles: ${modules.slice(0, 3).join(', ')}${modules.length > 3 ? '...' : ''}`);
     }
   } catch (_) {
-    els.pluginBackend.textContent = 'native';
+    setText(els.pluginBackend, 'native');
   }
 }
 
@@ -136,6 +197,7 @@ function renderWave(file) {
 }
 
 function renderIssues(list) {
+  if (!els.issues) return;
   els.issues.innerHTML = '';
   (list || []).forEach(item => {
     const li = document.createElement('li');
@@ -145,6 +207,7 @@ function renderIssues(list) {
 }
 
 function renderActions(chain, decision) {
+  if (!els.actions) return;
   els.actions.innerHTML = '';
   const actions = chain?.actions || [];
   if (actions.length) {
@@ -163,6 +226,7 @@ function renderActions(chain, decision) {
 }
 
 function renderArrangementTags(tags) {
+  if (!els.arrangementTags) return;
   els.arrangementTags.innerHTML = '';
   (tags || []).forEach((tag) => {
     const li = document.createElement('li');
@@ -172,6 +236,7 @@ function renderArrangementTags(tags) {
 }
 
 function renderSectionMap(analysis) {
+  if (!els.sectionMap) return;
   const sections = analysis?.section_rms_db || [];
   if (!sections.length) {
     els.sectionMap.textContent = 'Sin datos de secciones.';
@@ -189,6 +254,23 @@ function renderSectionMap(analysis) {
   els.sectionMap.textContent = rows.join('\n');
 }
 
+function renderLoudnessRadar(analysis) {
+  if (!els.loudnessRadar) return;
+  const points = analysis?.loudness_radar || analysis?.section_rms_db || [];
+  if (!points.length) {
+    els.loudnessRadar.textContent = 'Sin datos de radar.';
+    return;
+  }
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const rows = points.map((v, i) => {
+    const norm = max === min ? 0.5 : (v - min) / (max - min);
+    const bars = '▮'.repeat(Math.max(1, Math.round(norm * 12)));
+    return `T${i + 1}: ${bars.padEnd(12, '·')} ${v.toFixed(1)} LU-ish`;
+  });
+  els.loudnessRadar.textContent = rows.join('\n');
+}
+
 function buildHumanNote(analysis, decision) {
   const focus = analysis?.arrangement_focus || 'balanced_mix';
   const tags = (analysis?.arrangement_tags || []).join(', ') || 'sin tags relevantes';
@@ -203,6 +285,7 @@ function buildHumanNote(analysis, decision) {
 }
 
 function setMeter(fillEl, valueEl, percent, label) {
+  if (!fillEl || !valueEl) return;
   fillEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   valueEl.textContent = label;
 }
@@ -262,6 +345,8 @@ async function analyzeLocalAudio(file) {
 function buildAdvancedPlan(data, localStats) {
   const genre = els.genrePreset.value;
   const targetLufs = Number(els.targetLufs.value);
+  const stemMode = els.stemMode?.value || 'full_mix';
+  const deliveryTarget = els.deliveryTarget?.value || 'streaming';
   const intensity = Number(els.intensity.value);
   const mode = els.assistantMode.value;
   const referenceLoaded = Boolean(els.referenceFile.files[0]);
@@ -269,6 +354,14 @@ function buildAdvancedPlan(data, localStats) {
   const plan = [];
   plan.push(`Human adaptive mode ${mode}/${genre}: decisión guiada por contexto musical real.`);
   plan.push(`Target final: ${targetLufs} LUFS con limitación transparente y control true-peak preventivo.`);
+  if (stemMode !== 'full_mix') {
+    plan.push(stemMode === 'vocals_only'
+      ? 'Stem mode activo: priorizar voz centrada para referencia vocal.'
+      : 'Stem mode activo: atenuar centro para versión instrumental rápida.');
+  }
+  if (deliveryTarget === 'cd_master') {
+    plan.push('Entrega CD: cadena extra de glue humano + loudness competitivo estilo disco físico.');
+  }
   if (data.analysis?.arrangement_focus) {
     plan.push(`Arreglo detectado: ${data.analysis.arrangement_focus} con tratamiento específico para voz/instrumentos/coros.`);
   }
@@ -298,6 +391,7 @@ function buildAdvancedPlan(data, localStats) {
 }
 
 function renderAdvancedPlan(items) {
+  if (!els.advancedPlan) return;
   els.advancedPlan.innerHTML = '';
   items.forEach((item) => {
     const li = document.createElement('li');
@@ -309,15 +403,15 @@ function renderAdvancedPlan(items) {
 async function uploadFile() {
   const file = els.file.files[0];
   if (!file) {
-    els.statusText.textContent = 'Selecciona un archivo primero.';
+    setText(els.statusText, 'Selecciona un archivo primero.');
     return;
   }
 
   renderWave(file);
   els.btn.disabled = true;
-  els.statusText.textContent = 'Analizando track localmente...';
-  els.downloads.classList.add('hidden');
-  els.progressBar.style.width = '3%';
+  setText(els.statusText, 'Analizando track localmente...');
+  els.downloads?.classList.add('hidden');
+  if (els.progressBar) els.progressBar.style.width = '3%';
 
   let localStats = null;
   try {
@@ -334,6 +428,8 @@ async function uploadFile() {
   form.append('mode', els.assistantMode.value);
   form.append('options_json', JSON.stringify({
     target_lufs: Number(els.targetLufs.value),
+    stem_mode: els.stemMode?.value || 'full_mix',
+    delivery_target: els.deliveryTarget?.value || 'streaming',
     intensity: Number(els.intensity.value),
     stereo_amount: Math.min(0.6, Math.max(0, Number(els.intensity.value) / 200)),
     reference_loaded: Boolean(els.referenceFile.files[0]),
@@ -345,17 +441,41 @@ async function uploadFile() {
       transient_shaper: els.modTransient.checked,
       true_peak_limiter: els.modLimiter.checked,
     },
+    plugin_params: {
+      dynamic_eq_amount: Number(els.pDynamicEq?.value || 1.0),
+      multiband_glue_strength: Number(els.pMultibandGlue?.value || 1.0),
+      stereo_width_amount: Number(els.pStereoWidth?.value || 0.10),
+      exciter_drive: Number(els.pExciterDrive?.value || 8.0),
+      transient_support: Number(els.pTransientAmount?.value || 0.95),
+      limiter_ceiling_dbtp: Number(els.pLimiterCeiling?.value || -1.0),
+    },
+    feature_flags: {
+      ab_match: Boolean(els.fxAbMatch?.checked),
+      section_true_peak_guard: Boolean(els.fxSectionTp?.checked),
+      ai_stem_mastering: Boolean(els.fxAiStem?.checked),
+      advanced_human_notes: Boolean(els.fxHumanNotes?.checked),
+      dynamic_deesser: Boolean(els.fxDeesser?.checked),
+      phase_mono_fix: Boolean(els.fxPhaseFix?.checked),
+      resonance_hunter: Boolean(els.fxResonance?.checked),
+      dither_noise_shaping: Boolean(els.fxDither?.checked),
+      vocal_priority_sidechain: Boolean(els.fxVocalPriority?.checked),
+      smart_limiter_lookahead: Boolean(els.fxSmartLimiter?.checked),
+      loudness_radar: Boolean(els.fxLoudnessRadar?.checked),
+      bass_note_control: Boolean(els.fxBassNoteControl?.checked),
+      smart_ms_sculptor: Boolean(els.fxMsSculptor?.checked),
+      qa_preflight: Boolean(els.fxQaPreflight?.checked),
+    },
   }));
 
   try {
-    els.statusText.textContent = 'Subiendo al motor de mastering...';
+    setText(els.statusText, 'Subiendo al motor de mastering...');
     const res = await fetch('/api/jobs', { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     await pollJob(data.job_id, localStats);
   } catch (err) {
     console.error(err);
-    els.statusText.textContent = `Error al procesar: ${err.message}`;
+    setText(els.statusText, `Error al procesar: ${err.message}`);
   } finally {
     els.btn.disabled = false;
   }
@@ -366,30 +486,38 @@ async function pollJob(jobId, localStats) {
     const res = await fetch(`/api/jobs/${jobId}`);
     const data = await res.json();
 
-    els.state.textContent = data.status || '-';
-    els.profile.textContent = data.profile || 'Mastering Suite X';
-    els.analysisBox.textContent = JSON.stringify(data.analysis || {}, null, 2);
-    els.decisionBox.textContent = JSON.stringify(data.decision || {}, null, 2);
+    setText(els.state, data.status || '-');
+    setText(els.profile, data.profile || 'PGR Mastering');
+    setText(els.analysisBox, JSON.stringify(data.analysis || {}, null, 2));
+    setText(els.decisionBox, JSON.stringify(data.decision || {}, null, 2));
     renderIssues(data.issues || []);
     renderActions(data.chain || {}, data.decision || {});
     renderAdvancedPlan(buildAdvancedPlan(data, localStats));
     renderArrangementTags(data.analysis?.arrangement_tags || data.decision?.arrangement_tags || []);
     renderSectionMap(data.analysis || {});
-    els.humanNote.textContent = buildHumanNote(data.analysis || {}, data.decision || {});
+    renderLoudnessRadar(data.analysis || {});
+    setText(els.humanNote, buildHumanNote(data.analysis || {}, data.decision || {}));
 
     const confidence = estimateConfidence((data.issues || []).length, els.intensity.value);
-    els.confidence.textContent = `${confidence}%`;
+    setText(els.confidence, `${confidence}%`);
 
     const progress = Math.max(3, data.progress || 0);
-    els.progressBar.style.width = `${progress}%`;
-    els.statusText.textContent = data.message || 'Procesando...';
+    updateProgress(progress);
+    setText(els.statusText, data.message || 'Procesando...');
     setSteps(progress, data.status || 'queued');
 
     if (data.status === 'done') {
-      els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav`;
-      els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3`;
-      els.downloads.classList.remove('hidden');
-      els.statusText.textContent = 'Master listo. Descarga disponible.';
+      if (els.downloadWav) els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=master`;
+      if (els.downloadMp3) els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=master`;
+      if (els.downloadAcapellaWav) els.downloadAcapellaWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=acapella`;
+      if (els.downloadAcapellaMp3) els.downloadAcapellaMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=acapella`;
+      if (els.downloadInstrumentalWav) els.downloadInstrumentalWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=instrumental`;
+      if (els.downloadInstrumentalMp3) els.downloadInstrumentalMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=instrumental`;
+      if (els.downloadDrumsMp3) els.downloadDrumsMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=drums`;
+      if (els.downloadBassMp3) els.downloadBassMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=bass`;
+      if (els.downloadOtherMp3) els.downloadOtherMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=other`;
+      els.downloads?.classList.remove('hidden');
+      setText(els.statusText, 'Master listo. Descarga disponible.');
       return;
     }
     if (data.status === 'error') {
@@ -400,6 +528,7 @@ async function pollJob(jobId, localStats) {
   throw new Error('Timeout esperando el job.');
 }
 
-els.btn.addEventListener('click', uploadFile);
+els.btn?.addEventListener('click', uploadFile);
 initToolbar();
+initLivePluginControls();
 refreshPluginInfo();
