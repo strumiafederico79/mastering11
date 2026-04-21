@@ -12,7 +12,7 @@
     <section class="hero">
       <div class="badge">PGR MASTERING • IMMERSIVE AUDIO LAB</div>
       <h1>PGR Mastering</h1>
-      <p>Plataforma de mastering premium con separación IA real de stems, decisiones musicales asistidas y entregas listas para release.</p>
+      <p>Plataforma de mastering premium con decisiones musicales asistidas y entregas listas para release.</p>
     </section>
 
     <section class="studio-grid">
@@ -58,14 +58,6 @@
             </select>
           </div>
           <div class="control-group">
-            <label for="stemMode">Separación rápida</label>
-            <select id="stemMode">
-              <option value="full_mix" selected>Mix completo</option>
-              <option value="vocals_only">Priorizar voz</option>
-              <option value="instrumental_only">Quitar voz (instrumental)</option>
-            </select>
-          </div>
-          <div class="control-group">
             <label for="deliveryTarget">Entrega final</label>
             <select id="deliveryTarget">
               <option value="streaming" selected>Streaming</option>
@@ -92,7 +84,6 @@
         <div class="module-grid">
           <label title="Compensa nivel percibido para comparar master vs original."><input id="fxAbMatch" type="checkbox" checked> A/B Match inteligente</label>
           <label title="Protege de clipping y true-peak por segmentos."><input id="fxSectionTp" type="checkbox" checked> Guard clipping por secciones</label>
-          <label title="Activa ruta de separación IA/fallback para stems."><input id="fxAiStem" type="checkbox"> Stem mastering inteligente</label>
           <label title="Añade notas técnicas detalladas de decisiones."><input id="fxHumanNotes" type="checkbox"> Human notes avanzado</label>
           <label title="Atenúa sibilancia en 5k-8k de forma contextual."><input id="fxDeesser" type="checkbox"> De-esser dinámico</label>
           <label title="Aplica correcciones para mejor mono-compatibilidad."><input id="fxPhaseFix" type="checkbox"> Fix fase/mono</label>
@@ -201,6 +192,11 @@
         </div>
 
         <button id="masterBtn">Iniciar Mastering</button>
+        <div class="module-grid process-controls">
+          <button id="pausePollBtn" type="button">⏸ Pausar estado</button>
+          <button id="resumePollBtn" type="button">▶ Reanudar estado</button>
+          <button id="cancelJobBtn" type="button">🛑 Cancelar render</button>
+        </div>
 
         <div class="wave-card">
           <div class="wave-header">
@@ -213,7 +209,14 @@
               <select id="previewMode">
                 <option value="full_mix" selected>Mix completo</option>
                 <option value="vocals_only">Solo voz (aprox)</option>
-                <option value="instrumental_only">Solo instrumental (aprox)</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="pollIntervalMs">Refresh estado en vivo</label>
+              <select id="pollIntervalMs">
+                <option value="500">Ultra live (0.5s)</option>
+                <option value="1000">Live (1s)</option>
+                <option value="2000" selected>Balanced (2s)</option>
               </select>
             </div>
           </div>
@@ -292,13 +295,6 @@
         <div class="downloads hidden" id="downloads">
           <a id="downloadWav" href="#">Descargar WAV</a>
           <a id="downloadMp3" href="#">Descargar MP3</a>
-          <a id="downloadAcapellaWav" href="#">Acapella WAV</a>
-          <a id="downloadAcapellaMp3" href="#">Acapella MP3</a>
-          <a id="downloadInstrumentalWav" href="#">Instrumental WAV</a>
-          <a id="downloadInstrumentalMp3" href="#">Instrumental MP3</a>
-          <a id="downloadDrumsMp3" href="#">Drums MP3 (IA)</a>
-          <a id="downloadBassMp3" href="#">Bass MP3 (IA)</a>
-          <a id="downloadOtherMp3" href="#">Music MP3 (IA)</a>
         </div>
       </article>
     </section>

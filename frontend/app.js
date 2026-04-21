@@ -4,6 +4,8 @@ let previewAudioObjectUrl = null;
 let previewElementSource = null;
 let previewGraphNodes = [];
 let previewRunning = false;
+let currentJobId = null;
+let pollingPaused = false;
 
 const els = {
   file: document.getElementById('file'),
@@ -11,7 +13,6 @@ const els = {
   assistantMode: document.getElementById('assistantMode'),
   genrePreset: document.getElementById('genrePreset'),
   targetLufs: document.getElementById('targetLufs'),
-  stemMode: document.getElementById('stemMode'),
   deliveryTarget: document.getElementById('deliveryTarget'),
   intensity: document.getElementById('intensity'),
   modDynamicEq: document.getElementById('modDynamicEq'),
@@ -24,7 +25,6 @@ const els = {
   modParallelMix: document.getElementById('modParallelMix'),
   fxAbMatch: document.getElementById('fxAbMatch'),
   fxSectionTp: document.getElementById('fxSectionTp'),
-  fxAiStem: document.getElementById('fxAiStem'),
   fxHumanNotes: document.getElementById('fxHumanNotes'),
   fxDeesser: document.getElementById('fxDeesser'),
   fxPhaseFix: document.getElementById('fxPhaseFix'),
@@ -79,11 +79,15 @@ const els = {
   eqHigh: document.getElementById('eqHigh'),
   eqHighVal: document.getElementById('eqHighVal'),
   previewMode: document.getElementById('previewMode'),
+  pollIntervalMs: document.getElementById('pollIntervalMs'),
   livePlayBtn: document.getElementById('livePlayBtn'),
   livePauseBtn: document.getElementById('livePauseBtn'),
   liveStopBtn: document.getElementById('liveStopBtn'),
   livePreviewAudio: document.getElementById('livePreviewAudio'),
   btn: document.getElementById('masterBtn'),
+  pausePollBtn: document.getElementById('pausePollBtn'),
+  resumePollBtn: document.getElementById('resumePollBtn'),
+  cancelJobBtn: document.getElementById('cancelJobBtn'),
   profile: document.getElementById('profile'),
   state: document.getElementById('state'),
   pluginBackend: document.getElementById('pluginBackend'),
@@ -103,13 +107,6 @@ const els = {
   downloads: document.getElementById('downloads'),
   downloadWav: document.getElementById('downloadWav'),
   downloadMp3: document.getElementById('downloadMp3'),
-  downloadAcapellaWav: document.getElementById('downloadAcapellaWav'),
-  downloadAcapellaMp3: document.getElementById('downloadAcapellaMp3'),
-  downloadInstrumentalWav: document.getElementById('downloadInstrumentalWav'),
-  downloadInstrumentalMp3: document.getElementById('downloadInstrumentalMp3'),
-  downloadDrumsMp3: document.getElementById('downloadDrumsMp3'),
-  downloadBassMp3: document.getElementById('downloadBassMp3'),
-  downloadOtherMp3: document.getElementById('downloadOtherMp3'),
   meterDynamics: document.getElementById('meterDynamics'),
   meterStereo: document.getElementById('meterStereo'),
   meterTone: document.getElementById('meterTone'),
@@ -240,6 +237,12 @@ function initLivePluginControls() {
   });
 }
 
+function setProcessControlsState({ running = false, paused = false }) {
+  if (els.pausePollBtn) els.pausePollBtn.disabled = !running || paused;
+  if (els.resumePollBtn) els.resumePollBtn.disabled = !running || !paused;
+  if (els.cancelJobBtn) els.cancelJobBtn.disabled = !running;
+}
+
 function releasePreviewAudioUrl() {
   if (previewAudioObjectUrl) {
     URL.revokeObjectURL(previewAudioObjectUrl);
@@ -295,11 +298,6 @@ function applyPreviewMode(node) {
     connectMix(1, 0, 0.5);
     connectMix(0, 1, 0.5);
     connectMix(1, 1, 0.5);
-  } else if (mode === 'instrumental_only') {
-    connectMix(0, 0, 1.0);
-    connectMix(1, 0, -1.0);
-    connectMix(0, 1, -1.0);
-    connectMix(1, 1, 1.0);
   }
 
   previewGraphNodes.push(splitter, merger);
@@ -636,7 +634,6 @@ async function analyzeLocalAudio(file) {
 function buildAdvancedPlan(data, localStats) {
   const genre = els.genrePreset.value;
   const targetLufs = Number(els.targetLufs.value);
-  const stemMode = els.stemMode?.value || 'full_mix';
   const deliveryTarget = els.deliveryTarget?.value || 'streaming';
   const intensity = Number(els.intensity.value);
   const mode = els.assistantMode.value;
@@ -645,11 +642,6 @@ function buildAdvancedPlan(data, localStats) {
   const plan = [];
   plan.push(`Human adaptive mode ${mode}/${genre}: decisión guiada por contexto musical real.`);
   plan.push(`Target final: ${targetLufs} LUFS con limitación transparente y control true-peak preventivo.`);
-  if (stemMode !== 'full_mix') {
-    plan.push(stemMode === 'vocals_only'
-      ? 'Stem mode activo: priorizar voz centrada para referencia vocal.'
-      : 'Stem mode activo: atenuar centro para versión instrumental rápida.');
-  }
   if (deliveryTarget === 'cd_master') {
     plan.push('Entrega CD: cadena extra de glue humano + loudness competitivo estilo disco físico.');
   }
@@ -719,7 +711,6 @@ async function uploadFile() {
   form.append('mode', els.assistantMode.value);
   form.append('options_json', JSON.stringify({
     target_lufs: Number(els.targetLufs.value),
-    stem_mode: els.stemMode?.value || 'full_mix',
     delivery_target: els.deliveryTarget?.value || 'streaming',
     intensity: Number(els.intensity.value),
     stereo_amount: Math.min(0.6, Math.max(0, Number(els.intensity.value) / 200)),
@@ -749,11 +740,15 @@ async function uploadFile() {
       limiter_release_s: Number(els.pLimiterRelease?.value || 0.08),
       preview_parallel_mix: Number(els.pParallelMix?.value || 1.0),
       output_gain_db: Number(els.pOutputGain?.value || 0),
+      eq_low_db: Number(els.eqLow?.value || 0),
+      eq_low_mid_db: Number(els.eqLowMid?.value || 0),
+      eq_mid_db: Number(els.eqMid?.value || 0),
+      eq_high_mid_db: Number(els.eqHighMid?.value || 0),
+      eq_high_db: Number(els.eqHigh?.value || 0),
     },
     feature_flags: {
       ab_match: Boolean(els.fxAbMatch?.checked),
       section_true_peak_guard: Boolean(els.fxSectionTp?.checked),
-      ai_stem_mastering: Boolean(els.fxAiStem?.checked),
       advanced_human_notes: Boolean(els.fxHumanNotes?.checked),
       dynamic_deesser: Boolean(els.fxDeesser?.checked),
       phase_mono_fix: Boolean(els.fxPhaseFix?.checked),
@@ -773,11 +768,17 @@ async function uploadFile() {
     const res = await fetch('/api/jobs', { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    currentJobId = data.job_id;
+    pollingPaused = false;
+    setProcessControlsState({ running: true, paused: false });
     await pollJob(data.job_id, localStats);
   } catch (err) {
     console.error(err);
     setText(els.statusText, `Error al procesar: ${err.message}`);
   } finally {
+    currentJobId = null;
+    pollingPaused = false;
+    setProcessControlsState({ running: false, paused: false });
     stopPreview();
     releasePreviewAudioUrl();
     if (els.livePreviewAudio) {
@@ -790,6 +791,11 @@ async function uploadFile() {
 
 async function pollJob(jobId, localStats) {
   for (let i = 0; i < 600; i++) {
+    if (pollingPaused) {
+      await new Promise(r => setTimeout(r, 350));
+      continue;
+    }
+
     const res = await fetch(`/api/jobs/${jobId}`);
     const data = await res.json();
 
@@ -816,29 +822,56 @@ async function pollJob(jobId, localStats) {
     if (data.status === 'done') {
       if (els.downloadWav) els.downloadWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=master`;
       if (els.downloadMp3) els.downloadMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=master`;
-      if (els.downloadAcapellaWav) els.downloadAcapellaWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=acapella`;
-      if (els.downloadAcapellaMp3) els.downloadAcapellaMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=acapella`;
-      if (els.downloadInstrumentalWav) els.downloadInstrumentalWav.href = `/api/jobs/${jobId}/download?fmt=wav&variant=instrumental`;
-      if (els.downloadInstrumentalMp3) els.downloadInstrumentalMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=instrumental`;
-      if (els.downloadDrumsMp3) els.downloadDrumsMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=drums`;
-      if (els.downloadBassMp3) els.downloadBassMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=bass`;
-      if (els.downloadOtherMp3) els.downloadOtherMp3.href = `/api/jobs/${jobId}/download?fmt=mp3&variant=other`;
       els.downloads?.classList.remove('hidden');
       setText(els.statusText, 'Master listo. Descarga disponible.');
+      return;
+    }
+    if (data.status === 'cancelled') {
+      setText(els.statusText, data.message || 'Render cancelado.');
       return;
     }
     if (data.status === 'error') {
       throw new Error(data.error || 'Error en mastering');
     }
-    await new Promise(r => setTimeout(r, 2000));
+    const pollEveryMs = Math.max(300, Number(els.pollIntervalMs?.value || 2000));
+    await new Promise(r => setTimeout(r, pollEveryMs));
   }
   throw new Error('Timeout esperando el job.');
+}
+
+function pausePolling() {
+  if (!currentJobId) return;
+  pollingPaused = true;
+  setProcessControlsState({ running: true, paused: true });
+  setText(els.statusText, 'Monitoreo pausado. El render sigue ejecutándose.');
+}
+
+function resumePolling() {
+  if (!currentJobId) return;
+  pollingPaused = false;
+  setProcessControlsState({ running: true, paused: false });
+  setText(els.statusText, 'Monitoreo en vivo reactivado.');
+}
+
+async function cancelCurrentJob() {
+  if (!currentJobId) return;
+  try {
+    const res = await fetch(`/api/jobs/${currentJobId}/cancel`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    setText(els.statusText, data.message || 'Cancelación enviada. Deteniendo proceso...');
+  } catch (err) {
+    setText(els.statusText, `No se pudo cancelar: ${err.message}`);
+  }
 }
 
 els.btn?.addEventListener('click', uploadFile);
 els.livePlayBtn?.addEventListener('click', handleLivePlay);
 els.livePauseBtn?.addEventListener('click', pausePreview);
 els.liveStopBtn?.addEventListener('click', stopPreview);
+els.pausePollBtn?.addEventListener('click', pausePolling);
+els.resumePollBtn?.addEventListener('click', resumePolling);
+els.cancelJobBtn?.addEventListener('click', cancelCurrentJob);
 els.livePreviewAudio?.addEventListener('play', async () => {
   if (previewCtx?.state === 'suspended') await previewCtx.resume();
   await restartPreview();
@@ -853,3 +886,4 @@ els.livePreviewAudio?.addEventListener('ended', () => {
 initToolbar();
 initLivePluginControls();
 refreshPluginInfo();
+setProcessControlsState({ running: false, paused: false });

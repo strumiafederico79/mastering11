@@ -1,6 +1,5 @@
 import traceback, subprocess
 import re
-from pathlib import Path
 
 from app.worker_app import celery_app
 from app.core.paths import UPLOAD_DIR, OUTPUT_DIR
@@ -9,10 +8,9 @@ from app.services.audio_io import load_audio_for_analysis
 from app.services.analyzer import analyze_audio
 from app.services.decision_engine import decide_mastering
 from app.services.mastering_chain import build_ffmpeg_filter_chain
-from app.services.ffmpeg_tools import apply_dither, export_mp3, export_stem, loudnorm_two_pass, mix_stems_to_instrumental
+from app.services.ffmpeg_tools import apply_dither, export_mp3, loudnorm_two_pass
 from app.services.job_store import read_job, write_job
 from app.services.learning import append_learning
-from app.services.source_separation import separate_with_demucs
 
 def _normalize_af_chain(af_chain: str) -> str:
     """
@@ -100,13 +98,6 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
     final_wav = OUTPUT_DIR / f"{job_id}.wav"
     final_wav_dither = OUTPUT_DIR / f"{job_id}_dither.wav"
     final_mp3 = OUTPUT_DIR / f"{job_id}.mp3"
-    acapella_wav = OUTPUT_DIR / f"{job_id}_acapella.wav"
-    acapella_mp3 = OUTPUT_DIR / f"{job_id}_acapella.mp3"
-    instrumental_wav = OUTPUT_DIR / f"{job_id}_instrumental.wav"
-    instrumental_mp3 = OUTPUT_DIR / f"{job_id}_instrumental.mp3"
-    drums_mp3 = OUTPUT_DIR / f"{job_id}_drums.mp3"
-    bass_mp3 = OUTPUT_DIR / f"{job_id}_bass.mp3"
-    other_mp3 = OUTPUT_DIR / f"{job_id}_other.mp3"
 
     try:
         update_job(job_id, status="processing", progress=5, message="Cargando audio...")
@@ -149,36 +140,6 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
         update_job(job_id, progress=90, message="Exportando MP3...", metrics=metrics, qa_report=qa_report)
         export_mp3(str(final_wav), str(final_mp3))
 
-        update_job(job_id, progress=94, message="Generando acapella e instrumental...")
-        demucs_stems = None
-        try:
-            demucs_stems = separate_with_demucs(str(input_path), str(OUTPUT_DIR / f"{job_id}_stems"))
-        except Exception:
-            demucs_stems = None
-
-        if demucs_stems:
-            try:
-                acapella_wav = Path(demucs_stems["vocals_wav_path"])
-                mix_stems_to_instrumental(
-                    demucs_stems["drums_wav_path"],
-                    demucs_stems["bass_wav_path"],
-                    demucs_stems["other_wav_path"],
-                    str(instrumental_wav),
-                )
-                export_mp3(demucs_stems["drums_wav_path"], str(drums_mp3))
-                export_mp3(demucs_stems["bass_wav_path"], str(bass_mp3))
-                export_mp3(demucs_stems["other_wav_path"], str(other_mp3))
-            except Exception:
-                demucs_stems = None
-                export_stem(str(final_wav), str(acapella_wav), stem_mode="acapella")
-                export_stem(str(final_wav), str(instrumental_wav), stem_mode="instrumental")
-        else:
-            export_stem(str(final_wav), str(acapella_wav), stem_mode="acapella")
-            export_stem(str(final_wav), str(instrumental_wav), stem_mode="instrumental")
-
-        export_mp3(str(acapella_wav), str(acapella_mp3))
-        export_mp3(str(instrumental_wav), str(instrumental_mp3))
-
         append_learning({
             "genre": decision.get("genre", "general"),
             "target_lufs": decision.get("target_lufs", -10.5),
@@ -194,14 +155,7 @@ def run_mastering(job_id: str, input_filename: str, mode: str = "human_master", 
             outputs={
                 "wav_path": str(final_wav),
                 "mp3_path": str(final_mp3),
-                "acapella_wav_path": str(acapella_wav),
-                "acapella_mp3_path": str(acapella_mp3),
-                "instrumental_wav_path": str(instrumental_wav),
-                "instrumental_mp3_path": str(instrumental_mp3),
-                "drums_mp3_path": str(drums_mp3) if drums_mp3.exists() else None,
-                "bass_mp3_path": str(bass_mp3) if bass_mp3.exists() else None,
-                "other_mp3_path": str(other_mp3) if other_mp3.exists() else None,
-                "source_separation": "demucs" if demucs_stems else "fast_stereo_extract",
+                "source_separation": "disabled",
             },
             error=None,
         )
