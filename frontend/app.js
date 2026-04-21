@@ -6,6 +6,9 @@ let previewGraphNodes = [];
 let previewRunning = false;
 let currentJobId = null;
 let pollingPaused = false;
+let liveSyncTimer = null;
+let liveSyncInFlight = false;
+let liveSyncQueued = false;
 
 const els = {
   file: document.getElementById('file'),
@@ -98,6 +101,8 @@ const els = {
   resumePollBtn: document.getElementById('resumePollBtn'),
   cancelJobBtn: document.getElementById('cancelJobBtn'),
   applyLiveBtn: document.getElementById('applyLiveBtn'),
+  autoLiveSync: document.getElementById('autoLiveSync'),
+  autoLiveSyncState: document.getElementById('autoLiveSyncState'),
   profile: document.getElementById('profile'),
   state: document.getElementById('state'),
   pluginBackend: document.getElementById('pluginBackend'),
@@ -244,10 +249,12 @@ function initLivePluginControls() {
     el.addEventListener('input', () => {
       refreshLiveSnapshot();
       if (previewRunning) restartPreview();
+      scheduleAutoLiveSync();
     });
     el.addEventListener('change', () => {
       refreshLiveSnapshot();
       if (previewRunning) restartPreview();
+      scheduleAutoLiveSync();
     });
   });
 }
@@ -256,6 +263,7 @@ function setProcessControlsState({ running = false, paused = false }) {
   if (els.pausePollBtn) els.pausePollBtn.disabled = !running || paused;
   if (els.resumePollBtn) els.resumePollBtn.disabled = !running || !paused;
   if (els.cancelJobBtn) els.cancelJobBtn.disabled = !running;
+  if (els.applyLiveBtn) els.applyLiveBtn.disabled = !running;
 }
 
 function releasePreviewAudioUrl() {
@@ -895,19 +903,45 @@ async function cancelCurrentJob() {
 }
 
 async function applyLiveChangesToJob() {
+  await pushLiveOptions({ silent: false });
+}
+
+function scheduleAutoLiveSync() {
+  if (!els.autoLiveSync?.checked || !currentJobId) return;
+  if (liveSyncTimer) clearTimeout(liveSyncTimer);
+  if (els.autoLiveSyncState) els.autoLiveSyncState.textContent = 'Sincronizando cambios...';
+  liveSyncTimer = setTimeout(() => {
+    pushLiveOptions({ silent: true });
+  }, 250);
+}
+
+async function pushLiveOptions({ silent = false } = {}) {
   if (!currentJobId) {
-    setText(els.statusText, 'No hay render activo para aplicar cambios live.');
+    if (!silent) setText(els.statusText, 'No hay render activo para aplicar cambios live.');
+    return;
+  }
+  if (liveSyncInFlight) {
+    liveSyncQueued = true;
     return;
   }
   try {
+    liveSyncInFlight = true;
     const form = new FormData();
     form.append('options_json', JSON.stringify(buildCurrentOptionsPayload()));
     const res = await fetch(`/api/jobs/${currentJobId}/live-options`, { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    setText(els.statusText, 'Cambios live enviados al motor.');
+    if (!silent) setText(els.statusText, 'Cambios live enviados al motor.');
+    if (els.autoLiveSyncState) els.autoLiveSyncState.textContent = 'Auto live sincronizado.';
   } catch (err) {
-    setText(els.statusText, `No se aplicaron cambios live: ${err.message}`);
+    if (!silent) setText(els.statusText, `No se aplicaron cambios live: ${err.message}`);
+    if (els.autoLiveSyncState) els.autoLiveSyncState.textContent = `Error live: ${err.message}`;
+  } finally {
+    liveSyncInFlight = false;
+    if (liveSyncQueued) {
+      liveSyncQueued = false;
+      scheduleAutoLiveSync();
+    }
   }
 }
 
@@ -919,6 +953,13 @@ els.pausePollBtn?.addEventListener('click', pausePolling);
 els.resumePollBtn?.addEventListener('click', resumePolling);
 els.cancelJobBtn?.addEventListener('click', cancelCurrentJob);
 els.applyLiveBtn?.addEventListener('click', applyLiveChangesToJob);
+els.autoLiveSync?.addEventListener('change', () => {
+  if (els.autoLiveSyncState) {
+    els.autoLiveSyncState.textContent = els.autoLiveSync.checked
+      ? 'Auto live activado.'
+      : 'Auto live pausado.';
+  }
+});
 els.livePreviewAudio?.addEventListener('play', async () => {
   if (previewCtx?.state === 'suspended') await previewCtx.resume();
   await restartPreview();
