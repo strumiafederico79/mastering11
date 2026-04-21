@@ -26,6 +26,8 @@ const els = {
   modLimiter: document.getElementById('modLimiter'),
   modPreviewEq: document.getElementById('modPreviewEq'),
   modParallelMix: document.getElementById('modParallelMix'),
+  liveCommitMode: document.getElementById('liveCommitMode'),
+  liveReset: document.getElementById('liveReset'),
   fxAbMatch: document.getElementById('fxAbMatch'),
   fxSectionTp: document.getElementById('fxSectionTp'),
   fxHumanNotes: document.getElementById('fxHumanNotes'),
@@ -93,6 +95,7 @@ const els = {
   livePauseBtn: document.getElementById('livePauseBtn'),
   liveStopBtn: document.getElementById('liveStopBtn'),
   livePreviewAudio: document.getElementById('livePreviewAudio'),
+  liveSnapshot: document.getElementById('liveSnapshot'),
   btn: document.getElementById('masterBtn'),
   pausePollBtn: document.getElementById('pausePollBtn'),
   resumePollBtn: document.getElementById('resumePollBtn'),
@@ -244,10 +247,12 @@ function initLivePluginControls() {
   rebuildInputs.forEach((el) => {
     if (!el) return;
     el.addEventListener('input', () => {
+      refreshLiveSnapshot();
       if (previewRunning) restartPreview();
       scheduleAutoLiveSync();
     });
     el.addEventListener('change', () => {
+      refreshLiveSnapshot();
       if (previewRunning) restartPreview();
       scheduleAutoLiveSync();
     });

@@ -179,6 +179,37 @@ def build_ffmpeg_filter_chain(decision: dict):
         filters.append("extrastereo=m=1.08")
         actions.append({"stage": "smart_ms_sculptor", "amount": 1.08})
 
+    if decision.get("live_preview_commit_mode", False):
+        if decision.get("preview_eq_enabled", True):
+            eq_bands = [
+                ("lowshelf", 80, float(decision.get("eq_low_db", 0.0)), 0.7, "preview_eq_low"),
+                ("q", 250, float(decision.get("eq_low_mid_db", 0.0)), 0.85, "preview_eq_low_mid"),
+                ("q", 1000, float(decision.get("eq_mid_db", 0.0)), 0.85, "preview_eq_mid"),
+                ("q", 4000, float(decision.get("eq_high_mid_db", 0.0)), 0.85, "preview_eq_high_mid"),
+                ("highshelf", 10000, float(decision.get("eq_high_db", 0.0)), 0.7, "preview_eq_high"),
+            ]
+            for eq_type, hz, gain_db, q_val, stage_name in eq_bands:
+                if abs(gain_db) < 0.05:
+                    continue
+                filters.append(f"equalizer=f={hz}:t={eq_type}:w={q_val}:g={gain_db:.2f}")
+                actions.append({"stage": stage_name, "db": round(gain_db, 2), "hz": hz})
+
+        pan = float(decision.get("stereo_pan", 0.0))
+        if abs(pan) > 0.001:
+            filters.append(f"stereotools=balance_out={max(-1.0, min(1.0, pan)):.2f}")
+            actions.append({"stage": "preview_stereo_pan", "pan": pan})
+
+        parallel_mix = float(decision.get("preview_parallel_mix", 1.0))
+        if decision.get("parallel_mix_enabled", True) and parallel_mix < 0.99:
+            wet_gain = max(0.0, min(1.0, parallel_mix))
+            filters.append(f"volume={wet_gain:.2f}")
+            actions.append({"stage": "preview_parallel_mix_commit", "wet_gain": wet_gain})
+
+        output_gain_db = float(decision.get("output_gain_db", 0.0))
+        if abs(output_gain_db) > 0.05:
+            filters.append(f"volume={output_gain_db:.2f}dB")
+            actions.append({"stage": "preview_output_gain", "db": round(output_gain_db, 2)})
+
     actions.append({"stage": "human_strategy", "profile": human_pass_strategy})
 
     if int(settings.enable_free_plugin_hooks) == 1 and settings.ladspa_plugin_spec:
