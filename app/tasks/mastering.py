@@ -1,4 +1,5 @@
-import traceback, subprocess
+import traceback
+import subprocess
 import re
 
 from app.worker_app import celery_app
