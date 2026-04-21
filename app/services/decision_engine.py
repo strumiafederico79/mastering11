@@ -232,6 +232,32 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         decision["exciter_drive"] = max(1.0, min(12.0, exciter_drive))
         decision["transient_support"] = max(0.85, min(0.99, transient_support))
         decision["limiter_ceiling_dbtp"] = max(-2.0, min(-0.1, limiter_ceiling))
+        decision["stereo_pan"] = max(-1.0, min(1.0, float(plugin_params.get("stereo_pan", 0.0))))
+        decision["preview_parallel_mix"] = max(0.0, min(1.0, float(plugin_params.get("preview_parallel_mix", 1.0))))
+        decision["output_gain_db"] = max(-12.0, min(12.0, float(plugin_params.get("output_gain_db", 0.0))))
+        decision["eq_low_db"] = max(-12.0, min(12.0, float(plugin_params.get("eq_low_db", 0.0))))
+        decision["eq_low_mid_db"] = max(-12.0, min(12.0, float(plugin_params.get("eq_low_mid_db", 0.0))))
+        decision["eq_mid_db"] = max(-12.0, min(12.0, float(plugin_params.get("eq_mid_db", 0.0))))
+        decision["eq_high_mid_db"] = max(-12.0, min(12.0, float(plugin_params.get("eq_high_mid_db", 0.0))))
+        decision["eq_high_db"] = max(-12.0, min(12.0, float(plugin_params.get("eq_high_db", 0.0))))
+
+    live_preview = options.get("live_preview")
+    if isinstance(live_preview, dict):
+        commit_mode = bool(live_preview.get("commit_mode", True))
+        decision["live_preview_commit_mode"] = commit_mode
+        if live_preview.get("reset_requested"):
+            decision["notes"].append("Snapshot en vivo solicitado con reset antes del render.")
+        if commit_mode:
+            decision["notes"].append("Render final sincronizado con snapshot de control en vivo.")
+            preview_modules = live_preview.get("preview_modules")
+            if isinstance(preview_modules, dict):
+                decision["preview_eq_enabled"] = bool(preview_modules.get("preview_eq", True))
+                decision["parallel_mix_enabled"] = bool(preview_modules.get("parallel_mix", True))
+            else:
+                decision["preview_eq_enabled"] = True
+                decision["parallel_mix_enabled"] = True
+        else:
+            decision["notes"].append("Render final desacoplado del snapshot en vivo (solo monitor).")
 
     features = options.get("feature_flags", {})
     if not isinstance(features, dict):

@@ -108,6 +108,10 @@
 
         <div class="section-title">Control en vivo de plugins</div>
         <div class="module-grid">
+          <label title="Aplica exactamente el snapshot de control en vivo al render final del backend."><input id="liveCommitMode" type="checkbox" checked> Commit Live → Render final</label>
+          <label title="Reinicia todos los controles en vivo a su estado por defecto."><input id="liveReset" type="checkbox"> Solicitar reset de snapshot</label>
+        </div>
+        <div class="module-grid">
           <label title="Inserta o bypass total de ecualizador de preview."><input id="modPreviewEq" type="checkbox" checked> Insert/BYPASS EQ Preview</label>
           <label title="Inserta o bypass control paralelo seco/húmedo."><input id="modParallelMix" type="checkbox" checked> Insert/BYPASS Dry-Wet</label>
         </div>
@@ -223,6 +227,8 @@
             <button id="liveStopBtn" type="button">⏹ Stop</button>
           </div>
           <audio id="livePreviewAudio" controls preload="none"></audio>
+          <div class="section-title">Snapshot en vivo (lo que escucharás al exportar)</div>
+          <pre id="liveSnapshot">Esperando ajustes en vivo...</pre>
           <div id="waveform"></div>
         </div>
 
