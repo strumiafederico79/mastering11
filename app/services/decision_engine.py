@@ -1,24 +1,30 @@
+def _to_float(value, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def decide_mastering(analysis: dict, mode: str = "human_master", options: dict | None = None) -> dict:
     options = options or {}
-    low = float(analysis.get("low", 0.0))
-    low_mid = float(analysis.get("low_mid", 0.0))
-    mid = float(analysis.get("mid", 0.0))
-    high = float(analysis.get("high", 0.0))
-    air = float(analysis.get("air", 0.0))
-    crest = float(analysis.get("crest", 0.0))
-    vocal_presence = float(analysis.get("vocal_presence", 0.0))
-    chorus_density = float(analysis.get("chorus_density", 0.0))
-    harmonic_ratio = float(analysis.get("harmonic_ratio", 1.0))
-    sibilance_index = float(analysis.get("sibilance_index", 0.0))
-    harshness_index = float(analysis.get("harshness_index", 0.0))
+    low = _to_float(analysis.get("low", 0.0), 0.0)
+    low_mid = _to_float(analysis.get("low_mid", 0.0), 0.0)
+    mid = _to_float(analysis.get("mid", 0.0), 0.0)
+    high = _to_float(analysis.get("high", 0.0), 0.0)
+    air = _to_float(analysis.get("air", 0.0), 0.0)
+    crest = _to_float(analysis.get("crest", 0.0), 0.0)
+    vocal_presence = _to_float(analysis.get("vocal_presence", 0.0), 0.0)
+    chorus_density = _to_float(analysis.get("chorus_density", 0.0), 0.0)
+    sibilance_index = _to_float(analysis.get("sibilance_index", 0.0), 0.0)
+    harshness_index = _to_float(analysis.get("harshness_index", 0.0), 0.0)
     resonance_hz = int(analysis.get("resonance_hz", 3500))
     clipping_sections = list(analysis.get("clipping_sections", []))
-    true_peak_est_db = float(analysis.get("true_peak_est_db", -3.0))
-    bass_note_hz = float(analysis.get("bass_note_hz", 80.0))
+    true_peak_est_db = _to_float(analysis.get("true_peak_est_db", -3.0), -3.0)
+    bass_note_hz = _to_float(analysis.get("bass_note_hz", 80.0), 80.0)
     arrangement_focus = str(analysis.get("arrangement_focus", "balanced_mix"))
     arrangement_tags = list(analysis.get("arrangement_tags", []))
-    macro_dynamics_db = float(analysis.get("macro_dynamics_db", 0.0))
-    hook_lift_db = float(analysis.get("hook_lift_db", 0.0))
+    macro_dynamics_db = _to_float(analysis.get("macro_dynamics_db", 0.0), 0.0)
+    hook_lift_db = _to_float(analysis.get("hook_lift_db", 0.0), 0.0)
     issues = list(analysis.get("issues", []))
 
     decision = {
@@ -56,7 +62,7 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         "human_glue_stage": False,
         "cd_presence_stage": False,
         "cd_low_weight_stage": False,
-        "ab_match_gain_db": float(analysis.get("ab_match_gain_db", 0.0)),
+        "ab_match_gain_db": _to_float(analysis.get("ab_match_gain_db", 0.0), 0.0),
         "deesser_db": 0.0,
         "deesser_hz": 6800,
         "resonance_cut_db": 0.0,
@@ -115,6 +121,12 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
         decision["deharsh_db"] = 1.5
         decision["actions"].append("Suavizar zona agresiva")
         decision["notes"].append("Hay dureza en presencia alta.")
+
+    harmonic_ratio = _to_float(analysis.get("harmonic_ratio", 1.0), 1.0)
+    if harmonic_ratio < 0.85 and not decision["use_exciter"]:
+        decision["use_exciter"] = True
+        decision["exciter_band"] = "high_only"
+        decision["actions"].append("Recuperar armónicos altos para mayor claridad")
 
     if "weak_transients" in issues or low_vs_mid > 4.0:
         decision["boost_transients"] = True
@@ -218,20 +230,20 @@ def decide_mastering(analysis: dict, mode: str = "human_master", options: dict |
 
     plugin_params = options.get("plugin_params")
     if isinstance(plugin_params, dict):
-        dynamic_eq_amount = float(plugin_params.get("dynamic_eq_amount", 1.0))
-        glue_strength = float(plugin_params.get("multiband_glue_strength", 1.0))
-        stereo_width = float(plugin_params.get("stereo_width_amount", decision["widen_amount"]))
-        exciter_drive = float(plugin_params.get("exciter_drive", 8.0))
-        transient_support = float(plugin_params.get("transient_support", 0.95))
-        limiter_ceiling = float(plugin_params.get("limiter_ceiling_dbtp", decision["limiter_ceiling_dbtp"]))
-        low_cut_hz = float(plugin_params.get("low_cut_hz", 25.0))
-        comp_threshold_db = float(plugin_params.get("comp_threshold_db", -18.0))
-        comp_ratio = float(plugin_params.get("comp_ratio", 1.8))
-        eq_low = float(plugin_params.get("eq_low_db", 0.0))
-        eq_low_mid = float(plugin_params.get("eq_low_mid_db", 0.0))
-        eq_mid = float(plugin_params.get("eq_mid_db", 0.0))
-        eq_high_mid = float(plugin_params.get("eq_high_mid_db", 0.0))
-        eq_high = float(plugin_params.get("eq_high_db", 0.0))
+        dynamic_eq_amount = _to_float(plugin_params.get("dynamic_eq_amount", 1.0), 1.0)
+        glue_strength = _to_float(plugin_params.get("multiband_glue_strength", 1.0), 1.0)
+        stereo_width = _to_float(plugin_params.get("stereo_width_amount", decision["widen_amount"]), decision["widen_amount"])
+        exciter_drive = _to_float(plugin_params.get("exciter_drive", 8.0), 8.0)
+        transient_support = _to_float(plugin_params.get("transient_support", 0.95), 0.95)
+        limiter_ceiling = _to_float(plugin_params.get("limiter_ceiling_dbtp", decision["limiter_ceiling_dbtp"]), decision["limiter_ceiling_dbtp"])
+        low_cut_hz = _to_float(plugin_params.get("low_cut_hz", 25.0), 25.0)
+        comp_threshold_db = _to_float(plugin_params.get("comp_threshold_db", -18.0), -18.0)
+        comp_ratio = _to_float(plugin_params.get("comp_ratio", 1.8), 1.8)
+        eq_low = _to_float(plugin_params.get("eq_low_db", 0.0), 0.0)
+        eq_low_mid = _to_float(plugin_params.get("eq_low_mid_db", 0.0), 0.0)
+        eq_mid = _to_float(plugin_params.get("eq_mid_db", 0.0), 0.0)
+        eq_high_mid = _to_float(plugin_params.get("eq_high_mid_db", 0.0), 0.0)
+        eq_high = _to_float(plugin_params.get("eq_high_db", 0.0), 0.0)
 
         decision["mud_cut_db"] = max(0.0, decision["mud_cut_db"] * max(0.0, min(2.0, dynamic_eq_amount)))
         decision["multiband_glue_strength"] = max(0.0, min(2.0, glue_strength))

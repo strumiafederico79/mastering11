@@ -1,5 +1,5 @@
-import librosa, soundfile as sf
-import numpy as np
+import librosa
+import soundfile as sf
 
 def load_audio_for_analysis(path: str, sr: int, max_seconds: int):
     y, sr = librosa.load(path, sr=sr, mono=True)

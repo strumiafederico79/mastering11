@@ -1,4 +1,5 @@
-import json, subprocess
+import json
+import subprocess
 
 def export_mp3(in_wav: str, out_mp3: str) -> None:
     subprocess.run(

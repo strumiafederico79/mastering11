@@ -1,5 +1,5 @@
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class JobCreateResponse(BaseModel):
     job_id: str
@@ -14,10 +14,10 @@ class JobStatusResponse(BaseModel):
     message: str | None = None
     mode: str | None = None
     profile: str | None = None
-    analysis: dict[str, Any] = {}
-    decision: dict[str, Any] = {}
-    chain: dict[str, Any] = {}
-    metrics: dict[str, Any] = {}
-    outputs: dict[str, Any] = {}
-    issues: list[str] = []
+    analysis: dict[str, Any] = Field(default_factory=dict)
+    decision: dict[str, Any] = Field(default_factory=dict)
+    chain: dict[str, Any] = Field(default_factory=dict)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    outputs: dict[str, Any] = Field(default_factory=dict)
+    issues: list[str] = Field(default_factory=list)
     error: str | None = None
