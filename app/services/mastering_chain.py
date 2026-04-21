@@ -12,14 +12,27 @@ def build_ffmpeg_filter_chain(decision: dict):
     actions = []
     modules = decision.get("advanced_modules", {})
     human_pass_strategy = decision.get("human_pass_strategy", "single_pass_balanced")
-    stem_mode = decision.get("stem_mode", "full_mix")
 
-    if stem_mode == "vocals_only":
-        filters.append("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1")
-        actions.append({"stage": "stem_vocals", "mode": "center_extract"})
-    elif stem_mode == "instrumental_only":
-        filters.append("pan=stereo|c0=c0-c1|c1=c1-c0")
-        actions.append({"stage": "stem_instrumental", "mode": "center_cancel"})
+    manual_eq = decision.get("manual_eq", {})
+    if isinstance(manual_eq, dict):
+        eq_plan = [
+            ("low_80hz_db", "equalizer=f=80:t=q:w=0.7:g={db}", "manual_eq_low"),
+            ("low_mid_250hz_db", "equalizer=f=250:t=q:w=0.9:g={db}", "manual_eq_low_mid"),
+            ("mid_1khz_db", "equalizer=f=1000:t=q:w=0.85:g={db}", "manual_eq_mid"),
+            ("high_mid_4khz_db", "equalizer=f=4000:t=q:w=0.8:g={db}", "manual_eq_high_mid"),
+            ("high_10khz_db", "treble=g={db}", "manual_eq_high"),
+        ]
+        for key, filter_expr, stage_name in eq_plan:
+            db = float(manual_eq.get(key, 0.0))
+            if abs(db) < 0.05:
+                continue
+            filters.append(filter_expr.format(db=_db(db)))
+            actions.append({"stage": stage_name, "db": db})
+
+    low_cut_hz = float(decision.get("low_cut_hz", 25.0))
+    if low_cut_hz > 20.0:
+        filters.append(f"highpass=f={int(low_cut_hz)}")
+        actions.append({"stage": "low_cut", "hz": int(low_cut_hz)})
 
     if decision.get("tighten_low_end"):
         filters.append("highpass=f=25")
@@ -69,7 +82,13 @@ def build_ffmpeg_filter_chain(decision: dict):
 
     drive = decision.get("multiband_drive", "medium")
     if decision.get("enable_main_compressor", False):
-        if drive == "high":
+        custom_threshold_db = float(decision.get("main_comp_threshold_db", 0.0))
+        custom_ratio = float(decision.get("main_comp_ratio", 0.0))
+        if -30.0 <= custom_threshold_db <= -6.0 and 1.0 <= custom_ratio <= 4.0:
+            threshold_linear = max(0.03, min(0.50, 10 ** (custom_threshold_db / 20.0)))
+            filters.append(f"acompressor=threshold={threshold_linear:.2f}:ratio={custom_ratio:.2f}:attack=18:release=190:makeup=1")
+            actions.append({"stage": "compressor_custom", "threshold_db": custom_threshold_db, "ratio": custom_ratio})
+        elif drive == "high":
             filters.append("acompressor=threshold=0.10:ratio=1.8:attack=20:release=200:makeup=1")
             actions.append({"stage": "compressor", "drive": "high"})
         elif drive == "low":
