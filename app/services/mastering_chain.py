@@ -177,6 +177,8 @@ def build_ffmpeg_filter_chain(decision: dict):
         actions.append({"stage": "smart_ms_sculptor", "amount": 1.08})
 
     if decision.get("live_preview_commit_mode", False):
+        preview_filters = []
+
         if decision.get("preview_eq_enabled", True):
             eq_bands = [
                 ("lowshelf", 80, float(decision.get("eq_low_db", 0.0)), 0.7, "preview_eq_low"),
@@ -188,19 +190,29 @@ def build_ffmpeg_filter_chain(decision: dict):
             for eq_type, hz, gain_db, q_val, stage_name in eq_bands:
                 if abs(gain_db) < 0.05:
                     continue
-                filters.append(f"equalizer=f={hz}:t={eq_type}:w={q_val}:g={gain_db:.2f}")
+                preview_filters.append(f"equalizer=f={hz}:t={eq_type}:w={q_val}:g={gain_db:.2f}")
                 actions.append({"stage": stage_name, "db": round(gain_db, 2), "hz": hz})
 
         pan = float(decision.get("stereo_pan", 0.0))
         if abs(pan) > 0.001:
-            filters.append(f"stereotools=balance_out={max(-1.0, min(1.0, pan)):.2f}")
+            preview_filters.append(f"stereotools=balance_out={max(-1.0, min(1.0, pan)):.2f}")
             actions.append({"stage": "preview_stereo_pan", "pan": pan})
 
         parallel_mix = float(decision.get("preview_parallel_mix", 1.0))
         if decision.get("parallel_mix_enabled", True) and parallel_mix < 0.99:
             wet_gain = max(0.0, min(1.0, parallel_mix))
-            filters.append(f"volume={wet_gain:.2f}")
-            actions.append({"stage": "preview_parallel_mix_commit", "wet_gain": wet_gain})
+            dry_gain = 1.0 - wet_gain
+            wet_chain = ",".join(preview_filters) if preview_filters else "anull"
+            filters.append(
+                "asplit=2[dry_preview_mix][wet_preview_mix];"
+                f"[wet_preview_mix]{wet_chain}[wet_preview_mix_processed];"
+                f"[dry_preview_mix]volume={dry_gain:.2f}[dry_preview_mix_scaled];"
+                f"[wet_preview_mix_processed]volume={wet_gain:.2f}[wet_preview_mix_scaled];"
+                "[dry_preview_mix_scaled][wet_preview_mix_scaled]amix=inputs=2:normalize=0"
+            )
+            actions.append({"stage": "preview_parallel_mix_commit", "dry_gain": round(dry_gain, 2), "wet_gain": round(wet_gain, 2)})
+        else:
+            filters.extend(preview_filters)
 
         output_gain_db = float(decision.get("output_gain_db", 0.0))
         if abs(output_gain_db) > 0.05:
