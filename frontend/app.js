@@ -24,6 +24,8 @@ const els = {
   modLimiter: document.getElementById('modLimiter'),
   modPreviewEq: document.getElementById('modPreviewEq'),
   modParallelMix: document.getElementById('modParallelMix'),
+  liveCommitMode: document.getElementById('liveCommitMode'),
+  liveReset: document.getElementById('liveReset'),
   fxAbMatch: document.getElementById('fxAbMatch'),
   fxSectionTp: document.getElementById('fxSectionTp'),
   fxAiStem: document.getElementById('fxAiStem'),
@@ -85,6 +87,7 @@ const els = {
   livePauseBtn: document.getElementById('livePauseBtn'),
   liveStopBtn: document.getElementById('liveStopBtn'),
   livePreviewAudio: document.getElementById('livePreviewAudio'),
+  liveSnapshot: document.getElementById('liveSnapshot'),
   btn: document.getElementById('masterBtn'),
   pausePollBtn: document.getElementById('pausePollBtn'),
   resumePollBtn: document.getElementById('resumePollBtn'),
@@ -237,18 +240,60 @@ function initLivePluginControls() {
   rebuildInputs.forEach((el) => {
     if (!el) return;
     el.addEventListener('input', () => {
+      refreshLiveSnapshot();
       if (previewRunning) restartPreview();
     });
     el.addEventListener('change', () => {
+      refreshLiveSnapshot();
       if (previewRunning) restartPreview();
     });
   });
 }
 
-function setProcessControlsState({ running = false, paused = false }) {
-  if (els.pausePollBtn) els.pausePollBtn.disabled = !running || paused;
-  if (els.resumePollBtn) els.resumePollBtn.disabled = !running || !paused;
-  if (els.cancelJobBtn) els.cancelJobBtn.disabled = !running;
+function collectLiveSettings() {
+  return {
+    commit_mode: Boolean(els.liveCommitMode?.checked),
+    reset_requested: Boolean(els.liveReset?.checked),
+    preview_modules: {
+      dynamic_eq: Boolean(els.modDynamicEq?.checked),
+      multiband_glue: Boolean(els.modMultibandGlue?.checked),
+      stereo_imager: Boolean(els.modStereoImager?.checked),
+      harmonic_exciter: Boolean(els.modExciter?.checked),
+      transient_shaper: Boolean(els.modTransient?.checked),
+      true_peak_limiter: Boolean(els.modLimiter?.checked),
+      preview_eq: Boolean(els.modPreviewEq?.checked),
+      parallel_mix: Boolean(els.modParallelMix?.checked),
+    },
+    preview_mode: els.previewMode?.value || 'full_mix',
+    plugin_params: {
+      dynamic_eq_amount: Number(els.pDynamicEq?.value || 1.0),
+      dynamic_eq_freq_hz: Number(els.pDynamicEqFreq?.value || 280),
+      dynamic_eq_q: Number(els.pDynamicEqQ?.value || 1.0),
+      multiband_glue_strength: Number(els.pMultibandGlue?.value || 1.0),
+      multiband_attack_s: Number(els.pMultibandAttack?.value || 0.01),
+      multiband_release_s: Number(els.pMultibandRelease?.value || 0.2),
+      stereo_width_amount: Number(els.pStereoWidth?.value || 0.10),
+      stereo_pan: Number(els.pStereoPan?.value || 0),
+      exciter_drive: Number(els.pExciterDrive?.value || 8.0),
+      exciter_tone_hz: Number(els.pExciterTone?.value || 6000),
+      transient_support: Number(els.pTransientAmount?.value || 0.95),
+      transient_mix: Number(els.pTransientMix?.value || 1.0),
+      limiter_ceiling_dbtp: Number(els.pLimiterCeiling?.value || -1.0),
+      limiter_release_s: Number(els.pLimiterRelease?.value || 0.08),
+      preview_parallel_mix: Number(els.pParallelMix?.value || 1.0),
+      output_gain_db: Number(els.pOutputGain?.value || 0),
+      eq_low_db: Number(els.eqLow?.value || 0),
+      eq_low_mid_db: Number(els.eqLowMid?.value || 0),
+      eq_mid_db: Number(els.eqMid?.value || 0),
+      eq_high_mid_db: Number(els.eqHighMid?.value || 0),
+      eq_high_db: Number(els.eqHigh?.value || 0),
+    },
+  };
+}
+
+function refreshLiveSnapshot() {
+  if (!els.liveSnapshot) return;
+  els.liveSnapshot.textContent = JSON.stringify(collectLiveSettings(), null, 2);
 }
 
 function releasePreviewAudioUrl() {
@@ -728,6 +773,7 @@ async function uploadFile() {
   const form = new FormData();
   form.append('file', file);
   form.append('mode', els.assistantMode.value);
+  const liveSettings = collectLiveSettings();
   form.append('options_json', JSON.stringify({
     target_lufs: Number(els.targetLufs.value),
     stem_mode: els.stemMode?.value || 'full_mix',
@@ -743,28 +789,12 @@ async function uploadFile() {
       transient_shaper: els.modTransient.checked,
       true_peak_limiter: els.modLimiter.checked,
     },
-    plugin_params: {
-      dynamic_eq_amount: Number(els.pDynamicEq?.value || 1.0),
-      dynamic_eq_freq_hz: Number(els.pDynamicEqFreq?.value || 280),
-      dynamic_eq_q: Number(els.pDynamicEqQ?.value || 1.0),
-      multiband_glue_strength: Number(els.pMultibandGlue?.value || 1.0),
-      multiband_attack_s: Number(els.pMultibandAttack?.value || 0.01),
-      multiband_release_s: Number(els.pMultibandRelease?.value || 0.2),
-      stereo_width_amount: Number(els.pStereoWidth?.value || 0.10),
-      stereo_pan: Number(els.pStereoPan?.value || 0),
-      exciter_drive: Number(els.pExciterDrive?.value || 8.0),
-      exciter_tone_hz: Number(els.pExciterTone?.value || 6000),
-      transient_support: Number(els.pTransientAmount?.value || 0.95),
-      transient_mix: Number(els.pTransientMix?.value || 1.0),
-      limiter_ceiling_dbtp: Number(els.pLimiterCeiling?.value || -1.0),
-      limiter_release_s: Number(els.pLimiterRelease?.value || 0.08),
-      preview_parallel_mix: Number(els.pParallelMix?.value || 1.0),
-      output_gain_db: Number(els.pOutputGain?.value || 0),
-      eq_low_db: Number(els.eqLow?.value || 0),
-      eq_low_mid_db: Number(els.eqLowMid?.value || 0),
-      eq_mid_db: Number(els.eqMid?.value || 0),
-      eq_high_mid_db: Number(els.eqHighMid?.value || 0),
-      eq_high_db: Number(els.eqHigh?.value || 0),
+    plugin_params: liveSettings.plugin_params,
+    live_preview: {
+      commit_mode: liveSettings.commit_mode,
+      reset_requested: liveSettings.reset_requested,
+      preview_mode: liveSettings.preview_mode,
+      preview_modules: liveSettings.preview_modules,
     },
     feature_flags: {
       ab_match: Boolean(els.fxAbMatch?.checked),
@@ -913,4 +943,4 @@ els.livePreviewAudio?.addEventListener('ended', () => {
 initToolbar();
 initLivePluginControls();
 refreshPluginInfo();
-setProcessControlsState({ running: false, paused: false });
+refreshLiveSnapshot();
